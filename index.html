@@ -1,432 +1,326 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fiche ESMS - Grist</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Fiche ESMS — Grist</title>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
-
   <style>
-    :root {
-      --bg: #f4f6f8;
-      --surface: #ffffff;
-      --surface-soft: #f8fafc;
-      --border: #e2e8f0;
-      --text: #0f172a;
-      --muted: #64748b;
-      --primary: #2563eb;
-      --primary-soft: #eff6ff;
-      --success: #15803d;
-      --success-soft: #f0fdf4;
-      --radius: 16px;
-      --shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    :root{
+      --bg:#f5f7fb;--surface:#fff;--soft:#f8fafc;--line:#e2e8f0;
+      --text:#0f172a;--muted:#64748b;--blue:#2563eb;--blue2:#1d4ed8;
+      --blueSoft:#eff6ff;--green:#15803d;--greenSoft:#f0fdf4;
+      --amber:#a16207;--amberSoft:#fffbeb;--red:#b91c1c;--redSoft:#fef2f2;
+      --shadow:0 1px 2px rgba(15,23,42,.05),0 8px 24px rgba(15,23,42,.04);
+      --r:16px;
     }
-
-    * { box-sizing: border-box; }
-
-    html, body {
-      margin: 0;
-      min-height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-                   "Segoe UI", sans-serif;
-    }
-
-    body {
-      padding: 18px;
-    }
-
-    .app {
-      max-width: 1180px;
-      margin: 0 auto;
-    }
-
-    .empty {
-      background: var(--surface);
-      border: 1px dashed #cbd5e1;
-      border-radius: var(--radius);
-      padding: 48px 24px;
-      text-align: center;
-      color: var(--muted);
-    }
-
-    .empty strong {
-      display: block;
-      margin-bottom: 6px;
-      color: var(--text);
-      font-size: 18px;
-    }
-
-    .hero {
-      background: linear-gradient(135deg, #ffffff, #f8fbff);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 24px;
-      margin-bottom: 18px;
-      box-shadow: var(--shadow);
-    }
-
-    .hero-top {
-      display: flex;
-      justify-content: space-between;
-      gap: 18px;
-      align-items: flex-start;
-      flex-wrap: wrap;
-    }
-
-    .eyebrow {
-      margin-bottom: 6px;
-      color: var(--primary);
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: clamp(24px, 3vw, 34px);
-      line-height: 1.15;
-    }
-
-    .subtitle {
-      margin-top: 8px;
-      color: var(--muted);
-      font-size: 15px;
-    }
-
-    .chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 16px;
-    }
-
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      min-height: 30px;
-      padding: 5px 10px;
-      border-radius: 999px;
-      background: var(--primary-soft);
-      color: #1d4ed8;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
-      gap: 18px;
-    }
-
-    .stack {
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
-
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-
-    .card-header {
-      padding: 16px 18px 10px;
-      font-size: 14px;
-      font-weight: 800;
-      color: #334155;
-    }
-
-    .card-body {
-      padding: 6px 18px 18px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .field {
-      background: var(--surface-soft);
-      border: 1px solid #eef2f7;
-      border-radius: 12px;
-      padding: 12px 14px;
-      min-width: 0;
-    }
-
-    .field.full { grid-column: 1 / -1; }
-
-    .label {
-      margin-bottom: 5px;
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: .04em;
-      text-transform: uppercase;
-    }
-
-    .value {
-      color: var(--text);
-      font-size: 14px;
-      font-weight: 600;
-      overflow-wrap: anywhere;
-      white-space: pre-wrap;
-    }
-
-    .value.soft {
-      font-weight: 500;
-      line-height: 1.6;
-    }
-
-    .contact {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding: 12px 14px;
-      background: var(--surface-soft);
-      border: 1px solid #eef2f7;
-      border-radius: 12px;
-    }
-
-    .status {
-      display: inline-flex;
-      width: fit-content;
-      padding: 4px 9px;
-      border-radius: 999px;
-      background: var(--success-soft);
-      color: var(--success);
-      font-size: 12px;
-      font-weight: 800;
-    }
-
-    .muted {
-      color: var(--muted);
-      font-weight: 500;
-    }
-
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 14px;
-    }
-
-    .action {
-      border: 1px solid var(--border);
-      background: #fff;
-      color: var(--text);
-      border-radius: 10px;
-      padding: 9px 12px;
-      font: inherit;
-      font-size: 13px;
-      font-weight: 700;
-      text-decoration: none;
-      cursor: pointer;
-    }
-
-    .action.primary {
-      background: var(--primary);
-      border-color: var(--primary);
-      color: #fff;
-    }
-
-    @media (max-width: 820px) {
-      .layout { grid-template-columns: 1fr; }
-    }
-
-    @media (max-width: 620px) {
-      body { padding: 10px; }
-      .hero { padding: 18px; }
-      .grid { grid-template-columns: 1fr; }
-      .field.full { grid-column: auto; }
-    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    body{padding:16px}
+    a{color:inherit}
+    button,a.btn{font:inherit}
+    #app{max-width:1180px;margin:0 auto}
+    .loading,.empty,.error{
+      background:#fff;border:1px dashed #cbd5e1;border-radius:18px;padding:46px 22px;text-align:center;color:var(--muted)}
+    .loading strong,.empty strong,.error strong{display:block;color:var(--text);font-size:18px;margin-bottom:6px}
+    .error{border-color:#fecaca;background:#fffafa}.error strong{color:var(--red)}
+    .hero{background:linear-gradient(135deg,#fff 0%,#f8fbff 100%);border:1px solid var(--line);
+      border-radius:20px;padding:24px;box-shadow:var(--shadow);margin-bottom:16px}
+    .hero-row{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap}
+    .eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:850;color:var(--blue);margin-bottom:6px}
+    h1{font-size:clamp(23px,3.2vw,34px);line-height:1.14;margin:0;max-width:830px}
+    .subtitle{color:var(--muted);margin-top:8px;font-size:14px}
+    .chips,.badges,.actions{display:flex;flex-wrap:wrap;gap:7px}
+    .chips{margin-top:15px}.actions{margin-top:17px}
+    .chip,.badge{display:inline-flex;align-items:center;min-height:28px;padding:4px 9px;border-radius:999px;
+      font-size:12px;font-weight:750;background:var(--blueSoft);color:var(--blue2)}
+    .badge.green{background:var(--greenSoft);color:var(--green)}
+    .badge.amber{background:var(--amberSoft);color:var(--amber)}
+    .badge.gray{background:#f1f5f9;color:#475569}
+    .btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;color:#1e293b;
+      border-radius:10px;padding:9px 12px;text-decoration:none;font-size:13px;font-weight:750;cursor:pointer}
+    .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+    .layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:16px;align-items:start}
+    .stack{display:flex;flex-direction:column;gap:16px}
+    .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+    .card-head{padding:15px 17px 9px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .card-title{font-size:14px;font-weight:850;color:#334155}
+    .count{font-size:11px;font-weight:800;color:var(--muted);background:#f1f5f9;border-radius:999px;padding:3px 8px}
+    .card-body{padding:6px 17px 17px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .field{background:var(--soft);border:1px solid #edf2f7;border-radius:12px;padding:11px 13px;min-width:0}
+    .field.full{grid-column:1/-1}.label{font-size:10.5px;font-weight:850;text-transform:uppercase;letter-spacing:.045em;color:var(--muted);margin-bottom:5px}
+    .value{font-size:14px;font-weight:650;overflow-wrap:anywhere;white-space:pre-wrap}.value.soft{font-weight:500;line-height:1.55}
+    .contacts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .person{border:1px solid var(--line);border-radius:13px;padding:13px;background:#fff;display:flex;flex-direction:column;gap:8px}
+    .person-top{display:flex;gap:10px;align-items:flex-start}.avatar{width:34px;height:34px;border-radius:10px;background:var(--blueSoft);
+      color:var(--blue2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;flex:0 0 auto}
+    .person-name{font-weight:850;font-size:13.5px}.person-role{font-size:12px;color:var(--muted);margin-top:2px}
+    .email{font-size:12px;color:var(--blue2);overflow-wrap:anywhere;text-decoration:none}.person-actions{margin-top:auto;padding-top:2px}
+    .small-btn{display:inline-flex;border:1px solid var(--line);border-radius:9px;padding:6px 8px;text-decoration:none;font-size:11.5px;font-weight:750}
+    .timeline{display:flex;flex-direction:column}
+    .event{display:grid;grid-template-columns:92px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid #eef2f7}
+    .event:last-child{border-bottom:0}.event-date{font-size:11.5px;color:var(--muted);font-weight:750}
+    .event-title{font-size:13px;font-weight:800}.event-desc{font-size:12.5px;color:#475569;margin-top:3px;line-height:1.45;white-space:pre-wrap}
+    .muted{color:var(--muted);font-size:13px}.tiny{font-size:11px;color:#94a3b8}
+    .footer{padding:8px 3px 2px;color:#94a3b8;font-size:10.5px}
+    .sep{color:#cbd5e1;margin:0 5px}
+    @media(max-width:850px){.layout{grid-template-columns:1fr}.contacts{grid-template-columns:1fr 1fr}}
+    @media(max-width:620px){body{padding:9px}.hero{padding:18px}.grid,.contacts{grid-template-columns:1fr}.field.full{grid-column:auto}.event{grid-template-columns:1fr;gap:3px}}
   </style>
 </head>
-
 <body>
-  <main class="app" id="app">
-    <div class="empty">
-      <strong>Sélectionnez un établissement</strong>
-      La fiche ESMS apparaîtra ici.
+<main id="app"><div class="loading"><strong>Chargement de la fiche ESMS…</strong>Connexion à Grist.</div></main>
+
+<script>
+const app = document.getElementById('app');
+const state = { tables:null, loadPromise:null };
+
+const TABLES = {
+  esms: 'ESMS_Liste_UGECAM_',
+  contacts: 'CONTACTS',
+  ugecam: 'UGECAM',
+  sites: 'SITES_nomenclature_UGECAM',
+  interactions: 'Interactions'
+};
+
+function esc(v){
+  return String(v ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;')
+    .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;");
+}
+function empty(v){ return v===null || v===undefined || v==='' || (Array.isArray(v)&&v.length===0); }
+
+function rowsFromColumnar(data){
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  const keys = Object.keys(data);
+  if (!keys.length) return [];
+  const n = Math.max(...keys.map(k => Array.isArray(data[k]) ? data[k].length : 0), 0);
+  return Array.from({length:n}, (_,i) => Object.fromEntries(keys.map(k => [k, Array.isArray(data[k]) ? data[k][i] : data[k]])));
+}
+
+function rawRefList(v){
+  if (empty(v)) return [];
+  if (typeof v === 'number') return v ? [v] : [];
+  if (typeof v === 'string'){
+    try { return rawRefList(JSON.parse(v)); } catch { return []; }
+  }
+  if (!Array.isArray(v)) return [];
+  const a = (v[0] === 'L' || v[0] === 'l') ? v.slice(1) : v;
+  return a.map(x => Number(x)).filter(x => Number.isFinite(x) && x > 0);
+}
+
+function bool(v){
+  if (v === true || v === 1 || v === '1' || v === 'True' || v === 'TRUE') return true;
+  if (Array.isArray(v) && v.length === 2 && v[0] === 'B') return Boolean(v[1]);
+  return false;
+}
+
+function listText(v){
+  if (empty(v)) return [];
+  if (Array.isArray(v)){
+    const a=(v[0]==='L'||v[0]==='l')?v.slice(1):v;
+    return a.filter(x=>!empty(x)).map(String);
+  }
+  if (typeof v === 'string'){
+    try { const p=JSON.parse(v); if(Array.isArray(p)) return listText(p); } catch {}
+    return [v];
+  }
+  return [String(v)];
+}
+
+function decodeText(v){
+  if (empty(v)) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number') return String(v);
+  if (Array.isArray(v)) return listText(v).join(', ');
+  return String(v);
+}
+
+function formatDate(v){
+  if (empty(v)) return '';
+  let d;
+  if (typeof v === 'number') d = new Date(v * (v < 1e12 ? 1000 : 1));
+  else d = new Date(v);
+  if (Number.isNaN(d.getTime())) return decodeText(v);
+  return new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}).format(d);
+}
+function initials(nom,prenom){ return ((prenom||'').slice(0,1)+(nom||'').slice(0,1)).toUpperCase() || '•'; }
+function field(label,value,full=false,soft=false){
+  if(empty(value)) return '';
+  return `<div class="field ${full?'full':''}"><div class="label">${esc(label)}</div><div class="value ${soft?'soft':''}">${esc(value)}</div></div>`;
+}
+function chip(v){ return empty(v)?'':`<span class="chip">${esc(v)}</span>`; }
+function badge(v,cls='gray'){ return `<span class="badge ${cls}">${esc(v)}</span>`; }
+
+async function fetchTable(tableId){
+  if (window.grist?.docApi?.fetchTable) return rowsFromColumnar(await grist.docApi.fetchTable(tableId));
+  if (window.grist?.raw?.docApi?.fetchTable) return rowsFromColumnar(await grist.raw.docApi.fetchTable(tableId));
+  throw new Error("L’API complète du document n’est pas disponible.");
+}
+
+async function loadTables(){
+  if(state.tables) return state.tables;
+  if(state.loadPromise) return state.loadPromise;
+  state.loadPromise = Promise.all([
+    fetchTable(TABLES.esms), fetchTable(TABLES.contacts), fetchTable(TABLES.ugecam),
+    fetchTable(TABLES.sites), fetchTable(TABLES.interactions)
+  ]).then(([esms,contacts,ugecam,sites,interactions]) => {
+    state.tables={esms,contacts,ugecam,sites,interactions};
+    return state.tables;
+  }).finally(()=>state.loadPromise=null);
+  return state.loadPromise;
+}
+
+function byId(rows,id){ return rows.find(r => Number(r.id)===Number(id)); }
+
+function contactCard(c){
+  const badges=[];
+  if(bool(c.Referent_DUI)) badges.push(badge('Référent DUI','green'));
+  if(bool(c.ACCES)) badges.push(badge('Accès','green'));
+  if(bool(c.Invite_aux_comites)) badges.push(badge('Invité comités','amber'));
+  if(bool(c.CAMSP_CMPP)) badges.push(badge('CAMSP / CMPP'));
+  if(bool(c.MEDICALISE)) badges.push(badge('Médicalisé'));
+  if(bool(c.ENFANCE_SERVICES)) badges.push(badge('Enfance / services'));
+  if(bool(c.READAPT_PROF)) badges.push(badge('Réadaptation pro'));
+  const name = [c.PRENOM,c.NOM].filter(Boolean).join(' ') || decodeText(c.NOM_PRENOM_contact) || 'Contact';
+  const email = decodeText(c.EMAIL);
+  return `<article class="person">
+    <div class="person-top"><div class="avatar">${esc(initials(c.NOM,c.PRENOM))}</div>
+      <div><div class="person-name">${esc(name)}</div><div class="person-role">${esc(c.FONCTION||'Fonction non renseignée')}</div></div>
     </div>
-  </main>
+    ${badges.length?`<div class="badges">${badges.join('')}</div>`:''}
+    ${email?`<a class="email" href="mailto:${encodeURIComponent(email)}">${esc(email)}</a>`:''}
+    ${email?`<div class="person-actions"><a class="small-btn" href="mailto:${encodeURIComponent(email)}">✉ Envoyer un mail</a></div>`:''}
+  </article>`;
+}
 
-  <script>
-    const app = document.getElementById("app");
+function interactionRows(all,contactIds){
+  if(!contactIds.length) return [];
+  const s=new Set(contactIds.map(Number));
+  return all.filter(r => rawRefList(r.CONTACT).some(id=>s.has(id)))
+    .sort((a,b)=>Number(b.DATE_INTERACTION||0)-Number(a.DATE_INTERACTION||0)).slice(0,8);
+}
 
-    function empty(v) {
-      return v === null || v === undefined || v === "" ||
-             (Array.isArray(v) && v.length === 0);
-    }
+function renderInteraction(r){
+  const types=listText(r.TYPE).join(' • ');
+  const theme=decodeText(r.Theme);
+  return `<div class="event">
+    <div class="event-date">${esc(formatDate(r.DATE_INTERACTION)||'Date inconnue')}</div>
+    <div><div class="event-title">${esc([types,theme].filter(Boolean).join(' — ')||'Interaction')}</div>
+    ${r.DESCRIPTION?`<div class="event-desc">${esc(r.DESCRIPTION)}</div>`:''}</div>
+  </div>`;
+}
 
-    function text(v) {
-      if (empty(v)) return "";
-      if (Array.isArray(v)) return v.filter(Boolean).join(", ");
-      if (typeof v === "object") {
-        if ("displayValue" in v) return v.displayValue || "";
-        return String(v);
-      }
-      return String(v);
-    }
+async function render(record){
+  if(!record){
+    app.innerHTML='<div class="empty"><strong>Sélectionnez un établissement</strong>La fiche ESMS apparaîtra ici.</div>';
+    return;
+  }
+  app.innerHTML='<div class="loading"><strong>Chargement…</strong>Résolution des contacts et rattachements.</div>';
+  try{
+    const t=await loadTables();
+    const raw = byId(t.esms, record.id) || record;
+    const ugecamRow=byId(t.ugecam, raw.UGECAM);
+    const siteRow=byId(t.sites, raw.SITES_nomenclature_UGECAM);
+    const contactIds=rawRefList(raw.CONTACTS);
+    const contacts=contactIds.map(id=>byId(t.contacts,id)).filter(Boolean);
+    const rattIds=rawRefList(raw.Rattachement_site_UGECAM);
+    const ratt=rattIds.map(id=>byId(t.esms,id)).filter(Boolean);
+    const interactions=interactionRows(t.interactions,contactIds);
 
-    function esc(v) {
-      return text(v)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
+    const title=decodeText(raw.ESMS_raison_sociale)||decodeText(record.ESMS_raison_sociale)||'Établissement';
+    const ugecam=decodeText(ugecamRow?.UGECAM)||decodeText(record.UGECAM)||decodeText(raw.gristHelper_Display4);
+    const site=decodeText(siteRow?.SITES_nomenclature_UGECAM)||decodeText(record.SITES_nomenclature_UGECAM)||decodeText(raw.gristHelper_Display5);
+    const typologie=decodeText(raw.Typologie_ESMS)||decodeText(record.Typologie_ESMS);
+    const finess=decodeText(record.FINESS)||decodeText(raw.FINESS);
+    const address=decodeText(raw.ADRESSE)||decodeText(record.ADRESSE);
+    const lat=Number(raw.Latitude), lon=Number(raw.Longitude);
+    const mapsQuery=(Number.isFinite(lat)&&Number.isFinite(lon))?`${lat},${lon}`:address;
+    const notes=decodeText(raw.Notes);
+    const lastUpdate=formatDate(raw.Derniere_mise_a_jour)||formatDate(record.Derniere_mise_a_jour);
 
-    function field(label, value, full = false, soft = false) {
-      if (empty(value)) return "";
-      return `
-        <div class="field ${full ? "full" : ""}">
-          <div class="label">${esc(label)}</div>
-          <div class="value ${soft ? "soft" : ""}">${esc(value)}</div>
+    app.innerHTML=`
+      <section class="hero">
+        <div class="hero-row"><div>
+          <div class="eyebrow">Fiche établissement</div>
+          <h1>${esc(title)}</h1>
+          <div class="subtitle">${esc([ugecam,site].filter(Boolean).join(' • '))}</div>
+          <div class="chips">${chip(typologie)}${finess?chip('FINESS '+finess):''}</div>
+        </div></div>
+        <div class="actions">
+          ${mapsQuery?`<a class="btn primary" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}">📍 Voir sur la carte</a>`:''}
         </div>
-      `;
-    }
+      </section>
 
-    function chip(value) {
-      if (empty(value)) return "";
-      return `<span class="chip">${esc(value)}</span>`;
-    }
+      <div class="layout">
+        <div class="stack">
+          <section class="card">
+            <div class="card-head"><div class="card-title">Informations générales</div></div>
+            <div class="card-body"><div class="grid">
+              ${field('Raison sociale',title)}
+              ${field('FINESS',finess)}
+              ${field('UGECAM',ugecam)}
+              ${field('Site',site)}
+              ${field('Typologie',typologie)}
+              ${field('Directeur',raw.Directeur||record.Directeur)}
+              ${field('Adresse',address,true,true)}
+            </div></div>
+          </section>
 
-    function render(record) {
-      if (!record) {
-        app.innerHTML = `
-          <div class="empty">
-            <strong>Sélectionnez un établissement</strong>
-            La fiche ESMS apparaîtra ici.
-          </div>`;
-        return;
-      }
-
-      const title =
-        text(record.ESMS_raison_sociale) ||
-        text(record.UGECAM_ESMS) ||
-        "Établissement";
-
-      const site = text(record.SITES_nomenclature_UGECAM);
-      const ugecam = text(record.UGECAM);
-      const typologie = text(record.Typologie_ESMS);
-      const contacts = text(record.CONTACTS);
-
-      const addressBlock = [
-        text(record.ADRESSE),
-        record.Latitude && record.Longitude
-          ? `${record.Latitude}, ${record.Longitude}`
-          : ""
-      ].filter(Boolean).join("\n");
-
-      app.innerHTML = `
-        <section class="hero">
-          <div class="hero-top">
-            <div>
-              <div class="eyebrow">Fiche ESMS</div>
-              <h1>${esc(title)}</h1>
-              ${site ? `<div class="subtitle">${esc(site)}</div>` : ""}
-              <div class="chips">
-                ${chip(ugecam)}
-                ${chip(typologie)}
-                ${record.FINESS ? chip("FINESS " + record.FINESS) : ""}
-              </div>
+          <section class="card">
+            <div class="card-head"><div class="card-title">Contacts associés</div><div class="count">${contacts.length}</div></div>
+            <div class="card-body">
+              ${contacts.length?`<div class="contacts">${contacts.map(contactCard).join('')}</div>`:'<div class="muted">Aucun contact associé à cet ESMS.</div>'}
             </div>
-          </div>
+          </section>
 
-          <div class="actions">
-            ${record.ADRESSE ? `
-              <a class="action primary"
-                 target="_blank"
-                 rel="noopener"
-                 href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(record.ADRESSE)}">
-                 Voir sur la carte
-              </a>` : ""}
-          </div>
-        </section>
-
-        <div class="layout">
-
-          <div class="stack">
-
-            <section class="card">
-              <div class="card-header">Informations générales</div>
-              <div class="card-body">
-                <div class="grid">
-                  ${field("Raison sociale", record.ESMS_raison_sociale)}
-                  ${field("FINESS", record.FINESS)}
-                  ${field("UGECAM", record.UGECAM)}
-                  ${field("Site", record.SITES_nomenclature_UGECAM)}
-                  ${field("Typologie", record.Typologie_ESMS)}
-                  ${field("Directeur", record.Directeur)}
-                  ${field("Adresse", addressBlock, true)}
-                </div>
-              </div>
-            </section>
-
-            <section class="card">
-              <div class="card-header">Notes</div>
-              <div class="card-body">
-                <div class="grid">
-                  ${field("Notes", record.Notes, true, true) ||
-                    `<div class="muted">Aucune note renseignée.</div>`}
-                </div>
-              </div>
-            </section>
-
-          </div>
-
-          <aside class="stack">
-
-            <section class="card">
-              <div class="card-header">Contacts</div>
-              <div class="card-body">
-                ${
-                  contacts
-                    ? `<div class="contact">
-                         <div class="status">Contacts associés</div>
-                         <div class="value soft">${esc(contacts)}</div>
-                       </div>`
-                    : `<div class="muted">Aucun contact associé.</div>`
-                }
-              </div>
-            </section>
-
-            <section class="card">
-              <div class="card-header">Rattachement</div>
-              <div class="card-body">
-                <div class="grid">
-                  ${field("Rattachement site UGECAM", record.Rattachement_site_UGECAM, true)}
-                  ${field("Libellé complet", record.UGECAM_ESMS, true, true)}
-                </div>
-              </div>
-            </section>
-
-            <section class="card">
-              <div class="card-header">Traçabilité</div>
-              <div class="card-body">
-                <div class="grid">
-                  ${field("Créé par", record.Cree_par, true)}
-                  ${field("Dernière modification", record.Derniere_mise_a_jour, true)}
-                  ${field("Modifié par", record.Derniere_mise_a_jour_par, true)}
-                </div>
-              </div>
-            </section>
-
-          </aside>
+          <section class="card">
+            <div class="card-head"><div class="card-title">Interactions récentes des contacts</div><div class="count">${interactions.length}</div></div>
+            <div class="card-body">
+              ${interactions.length?`<div class="timeline">${interactions.map(renderInteraction).join('')}</div>`:'<div class="muted">Aucune interaction récente trouvée pour les contacts associés.</div>'}
+            </div>
+          </section>
         </div>
-      `;
-    }
 
-    grist.ready({ requiredAccess: "read table" });
-    grist.onRecord(render);
-  </script>
+        <aside class="stack">
+          <section class="card">
+            <div class="card-head"><div class="card-title">Rattachement</div></div>
+            <div class="card-body">
+              ${ratt.length?ratt.map(x=>field('Établissement rattaché',decodeText(x.ESMS_raison_sociale),true,true)).join(''):'<div class="muted">Aucun rattachement renseigné.</div>'}
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-head"><div class="card-title">Notes</div></div>
+            <div class="card-body">${notes?`<div class="value soft">${esc(notes)}</div>`:'<div class="muted">Aucune note renseignée.</div>'}</div>
+          </section>
+
+          <section class="card">
+            <div class="card-head"><div class="card-title">Traçabilité</div></div>
+            <div class="card-body"><div class="grid">
+              ${field('Créé par',raw.Cree_par,true)}
+              ${field('Dernière mise à jour',lastUpdate,true)}
+              ${field('Modifié par',raw.Derniere_mise_a_jour_par,true)}
+            </div>
+            ${!raw.Cree_par&&!lastUpdate&&!raw.Derniere_mise_a_jour_par?'<div class="muted">Informations de traçabilité non renseignées.</div>':''}
+            </div>
+          </section>
+        </aside>
+      </div>
+      <div class="footer">Widget ESMS • données lues directement depuis Grist</div>`;
+  }catch(e){
+    console.error(e);
+    app.innerHTML=`<div class="error"><strong>Le widget n’a pas pu lire toutes les tables</strong>
+      ${esc(e?.message||e)}<br><br>
+      Dans Grist, ouvre la configuration du widget et accorde <b>Accès complet au document</b>.
+      Le widget n’effectue aucune écriture.</div>`;
+  }
+}
+
+grist.ready({requiredAccess:'full'});
+grist.onRecord(render);
+</script>
 </body>
 </html>
