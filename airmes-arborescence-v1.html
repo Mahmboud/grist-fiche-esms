@@ -7,7 +7,8 @@ function list(v){if(v==null||v==='')return[];if(Array.isArray(v)){const a=(v[0]=
 function clean(v){return String(v??'').trim()}
 function byId(a,id){return a.find(r=>Number(r.id)===Number(id))}
 async function ft(id){if(grist?.docApi?.fetchTable)return rows(await grist.docApi.fetchTable(id));if(grist?.raw?.docApi?.fetchTable)return rows(await grist.raw.docApi.fetchTable(id));throw new Error('API du document indisponible')}
-function ugecamName(r){const ref=Number(r.NIVEAU1);return clean(byId(state.ugecam,ref)?.UGECAM)||clean(r.gristHelper_Display3)||clean(r.NIVEAU1)}
+function refLabel(v){if(Array.isArray(v)){if(v[0]==='E'&&v[1]==='InvalidTypedValue')return clean(v[v.length-1]);if(v[0]==='R'&&v.length>1)return clean(v[v.length-1]);return clean(v[v.length-1])}const s=clean(v);if(/^E,InvalidTypedValue,Ref,/i.test(s))return s.replace(/^E,InvalidTypedValue,Ref,/i,'').trim();return s}
+function ugecamName(r){const ref=Number(r.NIVEAU1);const direct=Number.isFinite(ref)&&ref>0?clean(byId(state.ugecam,ref)?.UGECAM):'';const helper=refLabel(r.gristHelper_Display3);const raw=refLabel(r.NIVEAU1);return direct||helper||raw}
 function esmsNames(r){return list(r.Rattachement_ESMS_liste_UGECAM).map(Number).map(id=>clean(byId(state.esms,id)?.ESMS_raison_sociale)).filter(Boolean)}
 function pathOf(r){const p=[];for(let i=0;i<=9;i++){let v=i===1?ugecamName(r):clean(r['NIVEAU'+i]);if(v&&v!=='0'&&!/^b['\"]/i.test(v))p.push(v)}return p}
 function valid(r){return Number(r.id)>1&&clean(r.ARBORESCENCE)!=='import_path'&&pathOf(r).length>0}
