@@ -30,14 +30,14 @@ main{max-width:1100px;margin:auto}h1{margin:0 0 6px;font-size:26px}.lead{color:v
 
 <section class="card">
 <h2>👥 Sauvegarde CONTACTS</h2>
-<p>Exporte CONTACTS avec les libellés de fonction et un <b>FONCTION_ID</b> stable.</p>
+<p>Exporte <b>toutes les colonnes de CONTACTS</b> avec leurs valeurs brutes Grist : textes, booléens, dates, références et listes de références.</p>
 <button id="contacts" class="btn primary">Télécharger CONTACTS.csv</button>
 <div id="contactMsg"></div>
 </section>
 
 <section class="card">
 <h2>♻️ Restaurer CONTACTS</h2>
-<p>Restaure les lignes existantes par <b>CLE_CONTACT</b> ou <b>id</b>, sans recréer les contacts.</p>
+<p>Restaure <b>toutes les colonnes modifiables</b> dans leur état d'origine, par <b>CLE_CONTACT</b> ou <b>id</b>. Les colonnes calculées sont recalculées par Grist.</p>
 <input id="restoreFile" type="file" accept=".csv,text/csv">
 <br><br>
 <button id="restore" class="btn primary">Restaurer CONTACTS.csv</button>
@@ -142,122 +142,112 @@ function setupBackup(){
 $('contacts').onclick=async()=>{
   const out=$('contactMsg');
   try{
-    const [contactsRaw,funcRaw]=await Promise.all([
-      grist.docApi.fetchTable('CONTACTS'),
-      grist.docApi.fetchTable('REFERENTIEL_FONCTIONS')
-    ]);
-    const contacts=rows(contactsRaw), funcs=rows(funcRaw);
-    const fnMap=new Map(funcs.map(r=>[Number(r.id),r.LIBELLE||'']));
-    const baseCols=Object.keys(contactsRaw||{}).filter(k=>!k.startsWith('gristHelper_'));
-    const exportCols=[...baseCols,'FONCTION_ID'];
-    const lines=[exportCols.join(';')];
-    for(const r of contacts){
-      lines.push(exportCols.map(k=>{
-        if(k==='FONCTION')return csvCell(fnMap.get(Number(r.FONCTION))||'');
-        if(k==='FONCTION_ID')return csvCell(Number(r.FONCTION)||'');
-        return csvCell(r[k]);
-      }).join(';'));
+    const raw=await grist.docApi.fetchTable('CONTACTS');
+    const rr=rows(raw);
+    const cols=Object.keys(raw||{});
+    const lines=[cols.join(';')];
+    for(const r of rr){
+      lines.push(cols.map(k=>csvCell(JSON.stringify(r[k]===undefined?null:r[k]))).join(';'));
     }
     const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
     const url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download='CONTACTS_sauvegarde.csv';document.body.appendChild(a);a.click();a.remove();
+    a.href=url;a.download='CONTACTS_sauvegarde_integrale.csv';
+    document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1500);
-    out.className='ok';out.textContent=contacts.length+' contacts exportés.';
+    out.className='ok';
+    out.textContent=rr.length+' contacts exportés · '+cols.length+' colonnes sauvegardées intégralement.';
   }catch(err){
-    console.error(err);out.className='warn';out.textContent='Échec : '+(err?.message||String(err));
+    console.error(err);
+    out.className='warn';
+    out.textContent='Échec : '+(err?.message||String(err));
   }
 };
 $('restore').onclick=async()=>{
   const out=$('restoreMsg'),file=$('restoreFile').files?.[0];
-  if(!file){out.className='warn';out.textContent='Sélectionnez CONTACTS_sauvegarde.csv.';return;}
+  if(!file){
+    out.className='warn';
+    out.textContent='Sélectionnez CONTACTS_sauvegarde_integrale.csv.';
+    return;
+  }
   try{
     const a=analyseCsv(await file.text());
-    const [contactsRaw,funcRaw]=await Promise.all([
-      grist.docApi.fetchTable('CONTACTS'),
-      grist.docApi.fetchTable('REFERENTIEL_FONCTIONS')
+    const raw=await grist.docApi.fetchTable('CONTACTS');
+    const current=rows(raw);
+    const exportedHeaders=parseCsv((await file.text()).replace(/^\ufeff/,''),a.sep)[0].map(x=>String(x||'').trim());
+
+    const byKey=new Map(current.map(r=>[String(r.CLE_CONTACT||'').trim(),r.id]).filter(x=>x[0]));
+    const byId=new Map(current.map(r=>[String(r.id),r.id]));
+    const headerIndex=Object.fromEntries(exportedHeaders.map((h,i)=>[h,i]));
+    if(headerIndex.CLE_CONTACT===undefined && headerIndex.id===undefined){
+      throw new Error('Le fichier doit contenir CLE_CONTACT ou id.');
+    }
+
+    // Colonnes calculées / techniques : présentes dans la sauvegarde mais non réécrites.
+    const readOnly=new Set([
+      'id',
+      'NOM_PRENOM_contact',
+      'UGECAM',
+      'gristHelper_Display2',
+      'gristHelper_Display',
+      'Duplica_dans_NOM_PRENOM_contact',
+      'gristHelper_ConditionalRule',
+      'A',
+      'Typologie_ESMS_depuis_Liste_UGECAM',
+      'gristHelper_Display5',
+      'gristHelper_Display_Fonction'
     ]);
-    const contacts=rows(contactsRaw), funcs=rows(funcRaw);
-    const byKey=new Map(contacts.map(r=>[String(r.CLE_CONTACT||'').trim(),r.id]).filter(x=>x[0]));
-    const byId=new Map(contacts.map(r=>[String(r.id),r.id]));
-    const fnById=new Map(funcs.map(r=>[Number(r.id),Number(r.id)]));
-    const fnByLabel=new Map(funcs.map(r=>[normLabel(r.LIBELLE),Number(r.id)]));
-    const legacyAliases={
-      'ASS DIRECTION':'ASSISTANT DE DIRECTION',
-      'CADRE ADMINISTRATIF':'RESPONSABLE ADMINISTRATIF',
-      'CHARGE E DE MISSION ORGA SYSTEME DE SOINS':'CHARGE DE MISSION',
-      'CONSEILLER E QUALITE ET MAITRISE DES RISQUES':'REFERENT QUALITE',
-      'CONSEILLERE EN ECONOMIE SOCIALE ET FAMILIALE':'CONSEILLER EN ECONOMIE SOCIALE ET FAMILIALE',
-      'COORDONNATEUR TRICE DE PARCOURS':'COORDONNATEUR DE PARCOURS',
-      'COORDONNATEUR RICE D EQUIPE':'COORDONNATEUR D EQUIPE',
-      'DIRECTEUR TRICE':'DIRECTEUR',
-      'DIRECTEUR TRICE ADJOINT':'DIRECTEUR ADJOINT',
-      'DIRECTEUR TRICE DE TRANSITION':'DIRECTEUR',
-      'DIRECTION GENERALE UGECAM':'DIRECTION GENERALE',
-      'GESTIONNAIRE ADMINISTRATIVE':'RESPONSABLE ADMINISTRATIF',
-      'INFIRMIER E':'INFIRMIER',
-      'INFIRMIERE':'INFIRMIER',
-      'INFIRMIER E COORDONNATEUR TRICE':'INFIRMIER COORDONNATEUR',
-      'MANAGER DE BRANCHE INFORMATIQUE':'RESPONSABLE SERVICE INFORMATIQUE',
-      'MANAGER DE BRANCHE MEDICO SOCIAL':'RESPONSABLE MEDICO SOCIAL',
-      'RESPONSABLE MS':'RESPONSABLE MEDICO SOCIAL',
-      'RESP ADM':'RESPONSABLE ADMINISTRATIF',
-      'RESP SECTEUR QUALITE':'RESPONSABLE QUALITE',
-      'RESPONSABLE DE SERVICE ORGANISATION':'RESPONSABLE DE SERVICE',
-      'RESPONSABLE DE SERVICE SOINS':'RESPONSABLE DE SERVICE',
-      'SECRETAIRE DE DIRECTION':'SECRETAIRE',
-      'SECRETAIRE MEDICO SOCIALE':'SECRETAIRE MEDICO SOCIAL MEDICAL',
-      'PSYCHOLOGUE DU TRAVAIL':'PSYCHOLOGUE'
-    };
-    if(a.pos.CLE_CONTACT===undefined&&a.pos.ID===undefined)throw new Error('Le CSV doit contenir CLE_CONTACT ou id.');
-    const actions=[];let skipped=0;const unknown=new Set();
+
+    // Toutes les autres colonnes actuelles de CONTACTS sont restaurables.
+    const currentCols=new Set(Object.keys(raw||{}));
+    const writable=exportedHeaders.filter(h=>currentCols.has(h)&&!readOnly.has(h));
+    const actions=[];
+    let skipped=0,parseErrors=0;
+
+    function decode(cell){
+      const s=String(cell??'');
+      if(s==='') return null;
+      try{return JSON.parse(s);}
+      catch(e){parseErrors++;return s;}
+    }
+
     for(const line of a.data){
       let id=null;
-      if(a.pos.CLE_CONTACT!==undefined){
-        const key=String(line[a.pos.CLE_CONTACT]||'').trim();
-        if(key)id=byKey.get(key)||null;
+      if(headerIndex.CLE_CONTACT!==undefined){
+        const key=decode(line[headerIndex.CLE_CONTACT]);
+        if(key!==null && key!==undefined && String(key).trim()){
+          id=byKey.get(String(key).trim())||null;
+        }
       }
-      if(!id&&a.pos.ID!==undefined){
-        const raw=String(line[a.pos.ID]||'').trim();
-        if(raw)id=byId.get(raw)||null;
+      if(!id && headerIndex.id!==undefined){
+        const rid=decode(line[headerIndex.id]);
+        if(rid!==null && rid!==undefined) id=byId.get(String(rid))||null;
       }
       if(!id){skipped++;continue;}
-      let fnId=0;
-      if(a.pos.FONCTION_ID!==undefined){
-        const rawId=Number(String(line[a.pos.FONCTION_ID]||'').trim());
-        if(fnById.has(rawId))fnId=rawId;
+
+      const upd={};
+      for(const col of writable){
+        const pos=headerIndex[col];
+        if(pos===undefined) continue;
+        upd[col]=decode(line[pos]);
       }
-      if(!fnId&&a.pos.FONCTION!==undefined){
-        const raw=String(line[a.pos.FONCTION]||'').trim();
-        const key=normLabel(raw);
-        if(key){
-          const canonical=legacyAliases[key]||key;
-          fnId=fnByLabel.get(canonical)||0;
-        }
-        if(raw&&!fnId)unknown.add(raw);
-      }
-      const upd={
-        NOM:a.pos.NOM===undefined?'':String(line[a.pos.NOM]??''),
-        PRENOM:a.pos.PRENOM===undefined?'':String(line[a.pos.PRENOM]??''),
-        FONCTION:fnId,
-        EMAIL:a.pos.EMAIL===undefined?'':String(line[a.pos.EMAIL]??'')
-      };
       actions.push(['UpdateRecord','CONTACTS',id,upd]);
     }
-    if(!actions.length)throw new Error('Aucun contact correspondant trouvé.');
-    for(let i=0;i<actions.length;i+=200)await grist.docApi.applyUserActions(actions.slice(i,i+200));
-    const after=rows(await grist.docApi.fetchTable('CONTACTS'));
-    const cnt={
-      NOM:after.filter(r=>String(r.NOM||'').trim()).length,
-      PRENOM:after.filter(r=>String(r.PRENOM||'').trim()).length,
-      FONCTION:after.filter(r=>Number(r.FONCTION)>0).length,
-      EMAIL:after.filter(r=>String(r.EMAIL||'').trim()).length
-    };
+
+    if(!actions.length) throw new Error('Aucune ligne du fichier ne correspond aux contacts actuels.');
+    for(let i=0;i<actions.length;i+=150){
+      await grist.docApi.applyUserActions(actions.slice(i,i+150));
+    }
+
     out.className='ok';
-    out.innerHTML='<b>'+actions.length+' contacts restaurés</b>'+(skipped?' · '+skipped+' ignorés':'')+
-      '.<br>NOM: <b>'+cnt.NOM+'</b> · PRÉNOM: <b>'+cnt.PRENOM+'</b> · FONCTION: <b>'+cnt.FONCTION+'</b> · EMAIL: <b>'+cnt.EMAIL+'</b>'+
-      (unknown.size?'<br>⚠️ Fonctions non reconnues : '+[...unknown].join(', '):'');
+    out.innerHTML='<b>'+actions.length+' contacts restaurés</b>'+
+      (skipped?' · '+skipped+' ligne(s) ignorée(s)':'')+
+      '<br><b>'+writable.length+' colonnes modifiables</b> réintégrées en valeurs brutes.'+
+      '<br>Les colonnes calculées/formules ont été laissées à Grist pour recalcul automatique.'+
+      (parseErrors?'<br>⚠️ '+parseErrors+' valeur(s) anciennes/non JSON ont été conservées comme texte.':'');
   }catch(err){
-    console.error(err);out.className='warn';out.textContent='Échec de restauration : '+(err?.message||String(err));
+    console.error(err);
+    out.className='warn';
+    out.textContent='Échec de restauration : '+(err?.message||String(err));
   }
 };
 $('confirm').onchange=()=>{$('anon').disabled=!$('confirm').checked;};
