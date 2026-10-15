@@ -1,283 +1,58 @@
 <!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Administration — sauvegarde & épuration</title>
 <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 <style>
 :root{--bg:#f5f7fb;--line:#dfe7f1;--text:#0f172a;--muted:#64748b;--blue:#2563eb;--red:#b91c1c;--green:#15803d;--amber:#92400e}
-*{box-sizing:border-box}body{margin:0;padding:20px;background:var(--bg);font:14px Inter,system-ui,sans-serif;color:var(--text)}
-main{max-width:1100px;margin:auto}h1{margin:0 0 6px;font-size:26px}.lead{color:var(--muted);margin:0 0 18px}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}
-.card h2{font-size:17px;margin:0 0 8px}.card p{color:var(--muted);line-height:1.5}.btn{display:inline-block;border:0;border-radius:9px;padding:10px 13px;font-weight:800;text-decoration:none;cursor:pointer}
-.primary{background:var(--blue);color:#fff}.danger{background:#fee2e2;color:var(--red)}.ok{margin-top:10px;padding:10px;border-radius:9px;background:#f0fdf4;color:var(--green)}
-.warn{margin-top:10px;padding:10px;border-radius:9px;background:#fffbeb;color:var(--amber)}.small{font-size:11px}.hidden{display:none}input[type=file]{max-width:100%}
-@media(max-width:850px){.grid{grid-template-columns:1fr}}
-</style>
-</head>
-<body>
-<main>
-<h1>🛠 Administration — sauvegarde & épuration</h1>
-<p class="lead">Outils réservés au propriétaire du document.</p>
+*{box-sizing:border-box}body{margin:0;padding:20px;background:var(--bg);font:14px Inter,system-ui,sans-serif;color:var(--text)}main{max-width:1100px;margin:auto}
+h1{margin:0 0 6px;font-size:26px}.lead{color:var(--muted);margin:0 0 18px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}.card h2{font-size:17px;margin:0 0 8px}.card p{color:var(--muted);line-height:1.5}
+.btn{display:inline-block;border:0;border-radius:9px;padding:10px 13px;font-weight:800;text-decoration:none;cursor:pointer}.primary{background:var(--blue);color:#fff}.danger{background:#fee2e2;color:var(--red)}
+.ok{margin-top:10px;padding:10px;border-radius:9px;background:#f0fdf4;color:var(--green)}.warn{margin-top:10px;padding:10px;border-radius:9px;background:#fffbeb;color:var(--amber)}
+.small{font-size:11px}.hidden{display:none}input[type=file]{max-width:100%}@media(max-width:850px){.grid{grid-template-columns:1fr}}
+</style></head><body><main>
+<h1>🛠 Administration — sauvegarde & épuration</h1><p class="lead">Outils réservés au propriétaire du document.</p>
 <div class="grid">
-<section class="card">
-<h2>💾 Sauvegarde du document</h2>
-<p>Téléchargez une sauvegarde complète au format <b>.grist</b> avant toute modification sensible.</p>
-<a id="backup" class="btn primary" target="_blank" rel="noopener">Télécharger la sauvegarde .grist</a>
-<div id="backupHelp" class="warn hidden small">Utilisez le menu Grist <b>Partager → Télécharger le document</b>.</div>
-</section>
-
-<section class="card">
-<h2>👥 Sauvegarde CONTACTS</h2>
-<p>Exporte <b>toutes les colonnes de CONTACTS</b> avec leurs valeurs brutes Grist : textes, booléens, dates, références et listes de références.</p>
-<button id="contacts" class="btn primary">Télécharger CONTACTS.csv</button>
-<div id="contactMsg"></div>
-</section>
-
-<section class="card">
-<h2>♻️ Restaurer CONTACTS</h2>
-<p>Restaure <b>toutes les colonnes modifiables</b> dans leur état d'origine, par <b>CLE_CONTACT</b> ou <b>id</b>. Les colonnes calculées sont recalculées par Grist.</p>
-<input id="restoreFile" type="file" accept=".csv,text/csv">
-<br><br>
-<button id="restore" class="btn primary">Restaurer CONTACTS.csv</button>
-<div id="restoreMsg"></div>
-</section>
-
-<section class="card">
-<h2>🧹 Effacer les données individuelles</h2>
-<p>À utiliser uniquement sur une copie de développement. Vide NOM, PRÉNOM, EMAIL, FONCTION et Créé par dans CONTACTS, puis vide DEMANDES_ACCES.</p>
-<label class="small"><input id="confirm" type="checkbox"> Je confirme être dans une copie et avoir sauvegardé le .grist et CONTACTS.csv.</label>
-<br><br>
-<button id="anon" class="btn danger" disabled>Effacer toutes les données individuelles</button>
-<div id="anonMsg"></div>
-</section>
-</div>
-</main>
-
+<section class="card"><h2>💾 Sauvegarde du document</h2><p>Téléchargez une sauvegarde complète au format <b>.grist</b>.</p><a id="backup" class="btn primary" target="_blank" rel="noopener">Télécharger la sauvegarde .grist</a><div id="backupHelp" class="warn hidden small">Utilisez le menu Grist <b>Partager → Télécharger le document</b>.</div></section>
+<section class="card"><h2>👥 Sauvegarde CONTACTS</h2><p>Exporte <b>toutes les colonnes</b> de CONTACTS avec leurs valeurs brutes Grist.</p><button id="contacts" class="btn primary">Télécharger CONTACTS.csv</button><div id="contactMsg"></div></section>
+<section class="card"><h2>♻️ Remplacer CONTACTS</h2><p>Le fichier CSV devient la source de vérité : mise à jour, ajout et suppression des lignes pour rendre CONTACTS identique au fichier.</p><input id="restoreFile" type="file" accept=".csv,text/csv"><br><br><button id="restore" class="btn primary">Remplacer CONTACTS par ce CSV</button><div id="restoreMsg"></div></section>
+<section class="card"><h2>🧹 Effacer les données individuelles</h2><p>À utiliser uniquement sur une copie de développement.</p><label class="small"><input id="confirm" type="checkbox"> Je confirme être dans une copie et avoir sauvegardé le .grist et CONTACTS.csv.</label><br><br><button id="anon" class="btn danger" disabled>Effacer toutes les données individuelles</button><div id="anonMsg"></div></section>
+</div></main>
 <script>
 const $=id=>document.getElementById(id);
-function rows(d){
-  if(Array.isArray(d))return d;
-  const keys=Object.keys(d||{});
-  const n=Math.max(0,...keys.map(k=>Array.isArray(d[k])?d[k].length:0));
-  return Array.from({length:n},(_,i)=>Object.fromEntries(keys.map(k=>[k,Array.isArray(d[k])?d[k][i]:d[k]])));
-}
-function csvCell(v){
-  if(v===null||v===undefined)return '';
-  if(Array.isArray(v))v=JSON.stringify(v);
-  const s=String(v);
-  return /[;"\n\r]/.test(s)?'"'+s.replaceAll('"','""')+'"':s;
-}
-function detectSep(text){
-  const first=(text.split(/\r?\n/)[0]||'');
-  const cands=[';',',','\t'];
-  let best=';',score=-1;
-  for(const sep of cands){
-    const n=first.split(sep).length;
-    if(n>score){score=n;best=sep;}
-  }
-  return best;
-}
-function parseCsv(text,sep){
-  const out=[];let row=[],cur='',quoted=false;
-  for(let i=0;i<text.length;i++){
-    const ch=text[i],next=text[i+1];
-    if(quoted){
-      if(ch==='"'&&next==='"'){cur+='"';i++;}
-      else if(ch==='"'){quoted=false;}
-      else cur+=ch;
-    }else{
-      if(ch==='"')quoted=true;
-      else if(ch===sep){row.push(cur);cur='';}
-      else if(ch==='\n'){row.push(cur.replace(/\r$/,''));out.push(row);row=[];cur='';}
-      else cur+=ch;
-    }
-  }
-  row.push(cur.replace(/\r$/,''));
-  if(row.some(x=>String(x||'').trim()!==''))out.push(row);
-  return out;
-}
-function normHead(s){
-  return String(s||'').replace(/^\ufeff/,'').trim().toUpperCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    .replace(/[^A-Z0-9_]/g,'_').replace(/_+/g,'_');
-}
-function normLabel(s){
-  return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    .toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
-}
-function analyseCsv(text){
-  text=text.replace(/^\ufeff/,'');
-  const sep=detectSep(text), all=parseCsv(text,sep);
-  if(all.length<2)throw new Error('CSV vide');
-  const heads=all[0].map(normHead);
-  const index=Object.fromEntries(heads.map((h,i)=>[h,i]));
-  const aliases={
-    NOM:['NOM'], PRENOM:['PRENOM'], FONCTION:['FONCTION'],
-    FONCTION_ID:['FONCTION_ID','FONCTIONID'], EMAIL:['EMAIL','E_MAIL','MAIL'],
-    CLE_CONTACT:['CLE_CONTACT','CLECONTACT'], ID:['ID']
-  };
-  const pos={};
-  for(const [name,list] of Object.entries(aliases)){
-    for(const alias of list){
-      const key=normHead(alias);
-      if(index[key]!==undefined){pos[name]=index[key];break;}
-    }
-  }
-  const data=all.slice(1).filter(r=>r.some(x=>String(x||'').trim()!==''));
-  return {sep,data,pos};
-}
-function setupBackup(){
-  try{
-    const ref=new URL(document.referrer);
-    const m=ref.pathname.match(/\/doc\/([^/]+)/);
-    if(!m)throw new Error('no doc id');
-    $('backup').href=ref.origin+'/api/docs/'+encodeURIComponent(m[1])+'/download';
-  }catch(e){
-    $('backup').classList.add('hidden');
-    $('backupHelp').classList.remove('hidden');
-  }
-}
-$('contacts').onclick=async()=>{
-  const out=$('contactMsg');
-  try{
-    const raw=await grist.docApi.fetchTable('CONTACTS');
-    const rr=rows(raw);
-    const cols=Object.keys(raw||{});
-    const lines=[cols.join(';')];
-    for(const r of rr){
-      lines.push(cols.map(k=>csvCell(JSON.stringify(r[k]===undefined?null:r[k]))).join(';'));
-    }
-    const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
-    const url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download='CONTACTS_sauvegarde_integrale.csv';
-    document.body.appendChild(a);a.click();a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),1500);
-    out.className='ok';
-    out.textContent=rr.length+' contacts exportés · '+cols.length+' colonnes sauvegardées intégralement.';
-  }catch(err){
-    console.error(err);
-    out.className='warn';
-    out.textContent='Échec : '+(err?.message||String(err));
-  }
-};
-$('restore').onclick=async()=>{
-  const out=$('restoreMsg'),file=$('restoreFile').files?.[0];
-  if(!file){
-    out.className='warn';
-    out.textContent='Sélectionnez CONTACTS_sauvegarde_integrale.csv.';
-    return;
-  }
-  try{
-    const a=analyseCsv(await file.text());
-    const raw=await grist.docApi.fetchTable('CONTACTS');
-    const current=rows(raw);
-    const exportedHeaders=parseCsv((await file.text()).replace(/^\ufeff/,''),a.sep)[0].map(x=>String(x||'').trim());
-
-    const byKey=new Map(current.map(r=>[String(r.CLE_CONTACT||'').trim(),r.id]).filter(x=>x[0]));
-    const byId=new Map(current.map(r=>[String(r.id),r.id]));
-    const headerIndex=Object.fromEntries(exportedHeaders.map((h,i)=>[h,i]));
-    if(headerIndex.CLE_CONTACT===undefined && headerIndex.id===undefined){
-      throw new Error('Le fichier doit contenir CLE_CONTACT ou id.');
-    }
-
-    // Colonnes calculées / techniques : présentes dans la sauvegarde mais non réécrites.
-    const readOnly=new Set([
-      'id',
-      'NOM_PRENOM_contact',
-      'UGECAM',
-      'gristHelper_Display2',
-      'gristHelper_Display',
-      'Duplica_dans_NOM_PRENOM_contact',
-      'gristHelper_ConditionalRule',
-      'A',
-      'Typologie_ESMS_depuis_Liste_UGECAM',
-      'gristHelper_Display5',
-      'gristHelper_Display_Fonction'
-    ]);
-
-    // Toutes les autres colonnes actuelles de CONTACTS sont restaurables.
-    const currentCols=new Set(Object.keys(raw||{}));
-    const writable=exportedHeaders.filter(h=>currentCols.has(h)&&!readOnly.has(h));
-    const actions=[];
-    let skipped=0,parseErrors=0;
-
-    function decode(cell){
-      const s=String(cell??'');
-      if(s==='') return null;
-      try{return JSON.parse(s);}
-      catch(e){parseErrors++;return s;}
-    }
-
-    for(const line of a.data){
-      let id=null;
-      if(headerIndex.CLE_CONTACT!==undefined){
-        const key=decode(line[headerIndex.CLE_CONTACT]);
-        if(key!==null && key!==undefined && String(key).trim()){
-          id=byKey.get(String(key).trim())||null;
-        }
-      }
-      if(!id && headerIndex.id!==undefined){
-        const rid=decode(line[headerIndex.id]);
-        if(rid!==null && rid!==undefined) id=byId.get(String(rid))||null;
-      }
-      if(!id){skipped++;continue;}
-
-      const upd={};
-      for(const col of writable){
-        const pos=headerIndex[col];
-        if(pos===undefined) continue;
-        upd[col]=decode(line[pos]);
-      }
-      actions.push(['UpdateRecord','CONTACTS',id,upd]);
-    }
-
-    if(!actions.length) throw new Error('Aucune ligne du fichier ne correspond aux contacts actuels.');
-    for(let i=0;i<actions.length;i+=150){
-      await grist.docApi.applyUserActions(actions.slice(i,i+150));
-    }
-
-    out.className='ok';
-    out.innerHTML='<b>'+actions.length+' contacts restaurés</b>'+
-      (skipped?' · '+skipped+' ligne(s) ignorée(s)':'')+
-      '<br><b>'+writable.length+' colonnes modifiables</b> réintégrées en valeurs brutes.'+
-      '<br>Les colonnes calculées/formules ont été laissées à Grist pour recalcul automatique.'+
-      (parseErrors?'<br>⚠️ '+parseErrors+' valeur(s) anciennes/non JSON ont été conservées comme texte.':'');
-  }catch(err){
-    console.error(err);
-    out.className='warn';
-    out.textContent='Échec de restauration : '+(err?.message||String(err));
-  }
-};
-$('confirm').onchange=()=>{$('anon').disabled=!$('confirm').checked;};
-$('anon').onclick=async()=>{
-  const out=$('anonMsg');
-  if(!$('confirm').checked)return;
-  $('anon').disabled=true;
-  try{
-    const contacts=rows(await grist.docApi.fetchTable('CONTACTS'));
-    const actions=contacts.map(r=>['UpdateRecord','CONTACTS',r.id,{NOM:'',PRENOM:'',EMAIL:'',FONCTION:0,Cree_par:''}]);
-    for(let i=0;i<actions.length;i+=200)await grist.docApi.applyUserActions(actions.slice(i,i+200));
-    try{
-      const reqs=rows(await grist.docApi.fetchTable('DEMANDES_ACCES'));
-      for(let i=0;i<reqs.length;i+=200){
-        await grist.docApi.applyUserActions(reqs.slice(i,i+200).map(r=>['RemoveRecord','DEMANDES_ACCES',r.id]));
-      }
-    }catch(e){}
-    out.className='ok';out.textContent='Épuration terminée.';
-  }catch(err){
-    console.error(err);out.className='warn';out.textContent='Échec : '+(err?.message||String(err));$('anon').disabled=false;
-  }
-};
-(async()=>{
-  try{
-    await grist.ready({requiredAccess:'full'});
-    setupBackup();
-  }catch(err){
-    console.error(err);
-  }
-})();
-</script>
-</body>
-</html>
+function rows(d){if(Array.isArray(d))return d;const keys=Object.keys(d||{}),n=Math.max(0,...keys.map(k=>Array.isArray(d[k])?d[k].length:0));return Array.from({length:n},(_,i)=>Object.fromEntries(keys.map(k=>[k,Array.isArray(d[k])?d[k][i]:d[k]])))}
+function csvCell(v){const s=JSON.stringify(v===undefined?null:v);return /[;"\n\r]/.test(s)?'"'+s.replaceAll('"','""')+'"':s}
+function detectSep(text){const first=text.split(/\r?\n/)[0]||'',cands=[';',',','\t'];let best=';',score=-1;for(const s of cands){const n=first.split(s).length;if(n>score){score=n;best=s}}return best}
+function parseCsv(text,sep){const out=[];let row=[],cur='',q=false;for(let i=0;i<text.length;i++){const ch=text[i],nx=text[i+1];if(q){if(ch==='"'&&nx==='"'){cur+='"';i++}else if(ch==='"')q=false;else cur+=ch}else{if(ch==='"')q=true;else if(ch===sep){row.push(cur);cur=''}else if(ch==='\n'){row.push(cur.replace(/\r$/,''));out.push(row);row=[];cur=''}else cur+=ch}}row.push(cur.replace(/\r$/,''));if(row.some(x=>String(x||'').trim()!==''))out.push(row);return out}
+function decode(cell){const s=String(cell??'');if(s==='')return null;try{return JSON.parse(s)}catch{return s}}
+function setupBackup(){try{const ref=new URL(document.referrer),m=ref.pathname.match(/\/doc\/([^/]+)/);if(!m)throw new Error();$('backup').href=ref.origin+'/api/docs/'+encodeURIComponent(m[1])+'/download'}catch(e){$('backup').classList.add('hidden');$('backupHelp').classList.remove('hidden')}}
+$('contacts').onclick=async()=>{const out=$('contactMsg');try{const raw=await grist.docApi.fetchTable('CONTACTS'),rr=rows(raw),cols=Object.keys(raw||{}),lines=[cols.join(';')];for(const r of rr)lines.push(cols.map(c=>csvCell(r[c])).join(';'));const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='CONTACTS_sauvegarde_integrale.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);out.className='ok';out.textContent=rr.length+' contacts exportés · '+cols.length+' colonnes.'}catch(e){console.error(e);out.className='warn';out.textContent='Échec : '+(e?.message||String(e))}};
+$('restore').onclick=async()=>{const out=$('restoreMsg'),file=$('restoreFile').files?.[0];if(!file){out.className='warn';out.textContent='Sélectionnez le CSV de sauvegarde.';return}try{
+ const text=(await file.text()).replace(/^\ufeff/,''),sep=detectSep(text),grid=parseCsv(text,sep);if(grid.length<2)throw new Error('CSV vide.');
+ const headers=grid[0].map(x=>String(x||'').trim()),idx=Object.fromEntries(headers.map((h,i)=>[h,i])),data=grid.slice(1).filter(r=>r.some(x=>String(x||'').trim()!==''));
+ if(idx.CLE_CONTACT===undefined&&idx.id===undefined)throw new Error('Le CSV doit contenir CLE_CONTACT ou id.');
+ const raw=await grist.docApi.fetchTable('CONTACTS'),current=rows(raw),currentCols=new Set(Object.keys(raw||{}));
+ const readOnly=new Set(['id','NOM_PRENOM_contact','gristHelper_Display2','gristHelper_Display','Duplica_dans_NOM_PRENOM_contact','gristHelper_ConditionalRule','A','Typologie_ESMS_depuis_Liste_UGECAM','gristHelper_Display5','gristHelper_Display_Fonction']);
+ const writable=headers.filter(h=>currentCols.has(h)&&!readOnly.has(h));
+ const byKey=new Map(current.map(r=>[String(r.CLE_CONTACT||'').trim(),r]).filter(x=>x[0])),byId=new Map(current.map(r=>[String(r.id),r]));
+ const keepIds=new Set(),updates=[],adds=[];let skipped=0;
+ for(const line of data){
+   const key=idx.CLE_CONTACT!==undefined?String(decode(line[idx.CLE_CONTACT])??'').trim():'';
+   const rid=idx.id!==undefined?String(decode(line[idx.id])??'').trim():'';
+   let existing=(key&&byKey.get(key))||(rid&&byId.get(rid))||null;
+   const rec={};for(const col of writable){const p=idx[col];if(p!==undefined)rec[col]=decode(line[p])}
+   if(existing){keepIds.add(Number(existing.id));updates.push(['UpdateRecord','CONTACTS',existing.id,rec])}
+   else{
+     const requestedId=rid&&Number.isInteger(Number(rid))&&Number(rid)>0?Number(rid):null;
+     adds.push(['AddRecord','CONTACTS',requestedId,rec]);
+   }
+ }
+ const remove=current.filter(r=>!keepIds.has(Number(r.id))&&!data.some(line=>{const key=idx.CLE_CONTACT!==undefined?String(decode(line[idx.CLE_CONTACT])??'').trim():'';return key&&String(r.CLE_CONTACT||'').trim()===key})).map(r=>['RemoveRecord','CONTACTS',r.id]);
+ // Update first to preserve existing row IDs/references, then add missing, then remove absent.
+ for(const list of [updates,adds,remove])for(let i=0;i<list.length;i+=100)await grist.docApi.applyUserActions(list.slice(i,i+100));
+ out.className='ok';out.innerHTML='<b>CONTACTS remplacée par le CSV.</b><br>'+updates.length+' mises à jour · '+adds.length+' ajouts · '+remove.length+' suppressions.<br>'+writable.length+' colonnes physiques restaurées. Les colonnes calculées sont recalculées par Grist.';
+}catch(e){console.error(e);out.className='warn';out.textContent='Échec : '+(e?.message||String(e))}};
+$('confirm').onchange=()=>{$('anon').disabled=!$('confirm').checked};
+$('anon').onclick=async()=>{const out=$('anonMsg');if(!$('confirm').checked)return;$('anon').disabled=true;try{const contacts=rows(await grist.docApi.fetchTable('CONTACTS')),actions=contacts.map(r=>['UpdateRecord','CONTACTS',r.id,{NOM:'',PRENOM:'',EMAIL:'',FONCTION:0,Cree_par:''}]);for(let i=0;i<actions.length;i+=150)await grist.docApi.applyUserActions(actions.slice(i,i+150));try{const req=rows(await grist.docApi.fetchTable('DEMANDES_ACCES'));for(let i=0;i<req.length;i+=150)await grist.docApi.applyUserActions(req.slice(i,i+150).map(r=>['RemoveRecord','DEMANDES_ACCES',r.id]))}catch(e){}out.className='ok';out.textContent='Épuration terminée.'}catch(e){console.error(e);out.className='warn';out.textContent='Échec : '+(e?.message||String(e));$('anon').disabled=false}};
+(async()=>{try{await grist.ready({requiredAccess:'full'});setupBackup()}catch(e){console.error(e)}})();
+</script></body></html>
