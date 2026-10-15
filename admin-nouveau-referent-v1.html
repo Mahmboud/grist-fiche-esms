@@ -47,7 +47,7 @@ fn('form').onsubmit=async e=>{e.preventDefault();const msg=fn('msg');msg.classNa
  if(S.contacts.some(c=>String(c.EMAIL||'').trim().toLowerCase()===email))throw new Error('Un contact existe déjà avec cet email.');
  const profile=fn('profil').value,siteId=Number(fn('site').value),funcId=Number(fn('fonction').value),ids=[...document.querySelectorAll('[name=esms]:checked')].map(x=>Number(x.value));
  if(profile==='site'&&!ids.length)throw new Error('Sélectionnez au moins un ESMS pour un référent de site.');
- const data={NOM:fn('nom').value.trim().toUpperCase(),PRENOM:fn('prenom').value.trim(),EMAIL:email,FONCTION:funcId,
+ const data={NOM:fn('nom').value.trim().toUpperCase(),PRENOM:fn('prenom').value.trim(),EMAIL:email,FONCTION:funcId,UGECAM:Number(fn('ugecam').value),
  SITES_nomenclature_UGECAM:siteId,ESMS_Liste_UGECAM_:profile==='site'?['L',...ids]:['L'],
  Referent_DUI:true,ACCES:true,SIEGE:profile==='siege',DNGU:profile==='dngu'};
  await grist.docApi.applyUserActions([['AddRecord','CONTACTS',null,data]]);
