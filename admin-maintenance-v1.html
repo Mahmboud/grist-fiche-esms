@@ -181,6 +181,33 @@ $('restore').onclick=async()=>{
     const byId=new Map(contacts.map(r=>[String(r.id),r.id]));
     const fnById=new Map(funcs.map(r=>[Number(r.id),Number(r.id)]));
     const fnByLabel=new Map(funcs.map(r=>[normLabel(r.LIBELLE),Number(r.id)]));
+    const legacyAliases={
+      'ASS DIRECTION':'ASSISTANT DE DIRECTION',
+      'CADRE ADMINISTRATIF':'RESPONSABLE ADMINISTRATIF',
+      'CHARGE E DE MISSION ORGA SYSTEME DE SOINS':'CHARGE DE MISSION',
+      'CONSEILLER E QUALITE ET MAITRISE DES RISQUES':'REFERENT QUALITE',
+      'CONSEILLERE EN ECONOMIE SOCIALE ET FAMILIALE':'CONSEILLER EN ECONOMIE SOCIALE ET FAMILIALE',
+      'COORDONNATEUR TRICE DE PARCOURS':'COORDONNATEUR DE PARCOURS',
+      'COORDONNATEUR RICE D EQUIPE':'COORDONNATEUR D EQUIPE',
+      'DIRECTEUR TRICE':'DIRECTEUR',
+      'DIRECTEUR TRICE ADJOINT':'DIRECTEUR ADJOINT',
+      'DIRECTEUR TRICE DE TRANSITION':'DIRECTEUR',
+      'DIRECTION GENERALE UGECAM':'DIRECTION GENERALE',
+      'GESTIONNAIRE ADMINISTRATIVE':'RESPONSABLE ADMINISTRATIF',
+      'INFIRMIER E':'INFIRMIER',
+      'INFIRMIERE':'INFIRMIER',
+      'INFIRMIER E COORDONNATEUR TRICE':'INFIRMIER COORDONNATEUR',
+      'MANAGER DE BRANCHE INFORMATIQUE':'RESPONSABLE SERVICE INFORMATIQUE',
+      'MANAGER DE BRANCHE MEDICO SOCIAL':'RESPONSABLE MEDICO SOCIAL',
+      'RESPONSABLE MS':'RESPONSABLE MEDICO SOCIAL',
+      'RESP ADM':'RESPONSABLE ADMINISTRATIF',
+      'RESP SECTEUR QUALITE':'RESPONSABLE QUALITE',
+      'RESPONSABLE DE SERVICE ORGANISATION':'RESPONSABLE DE SERVICE',
+      'RESPONSABLE DE SERVICE SOINS':'RESPONSABLE DE SERVICE',
+      'SECRETAIRE DE DIRECTION':'SECRETAIRE',
+      'SECRETAIRE MEDICO SOCIALE':'SECRETAIRE MEDICO SOCIAL MEDICAL',
+      'PSYCHOLOGUE DU TRAVAIL':'PSYCHOLOGUE'
+    };
     if(a.pos.CLE_CONTACT===undefined&&a.pos.ID===undefined)throw new Error('Le CSV doit contenir CLE_CONTACT ou id.');
     const actions=[];let skipped=0;const unknown=new Set();
     for(const line of a.data){
@@ -202,8 +229,10 @@ $('restore').onclick=async()=>{
       if(!fnId&&a.pos.FONCTION!==undefined){
         const raw=String(line[a.pos.FONCTION]||'').trim();
         const key=normLabel(raw);
-        if(key==='DIRECTEUR'&&fnByLabel.has('DIRECTION GENERALE UGECAM'))fnId=fnByLabel.get('DIRECTION GENERALE UGECAM');
-        else if(key)fnId=fnByLabel.get(key)||0;
+        if(key){
+          const canonical=legacyAliases[key]||key;
+          fnId=fnByLabel.get(canonical)||0;
+        }
         if(raw&&!fnId)unknown.add(raw);
       }
       const upd={
