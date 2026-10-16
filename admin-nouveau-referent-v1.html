@@ -49,7 +49,7 @@ fn('form').onsubmit=async e=>{e.preventDefault();const msg=fn('msg');msg.classNa
  if(profile==='site'&&!ids.length)throw new Error('Sélectionnez au moins un ESMS pour un référent de site.');
  const data={NOM:fn('nom').value.trim().toUpperCase(),PRENOM:fn('prenom').value.trim(),EMAIL:email,FONCTION:funcId,UGECAM:Number(fn('ugecam').value),
  SITES_nomenclature_UGECAM:siteId,ESMS_Liste_UGECAM_:profile==='site'?['L',...ids]:['L'],
- Referent_DUI:true,ACCES:true,SIEGE:profile==='siege',DNGU:profile==='dngu'};
+ Referent_DUI:true,ACCES:true,ACCES_CONTACTS:false,ACCES_LISTE_ESMS:true,ACCES_ARBORESCENCE:true,SIEGE:profile==='siege',DNGU:profile==='dngu'};
  await grist.docApi.applyUserActions([['AddRecord','CONTACTS',null,data]]);
  S.contacts=await ft('CONTACTS');msg.className='ok';msg.textContent='Référent créé avec succès.';fn('form').reset();fillFonctions();fillUgecam();fn('site').disabled=true;fn('site').innerHTML='<option value="">Choisir…</option>';renderEsms();
 }catch(err){console.error(err);msg.className='err';msg.textContent=err?.message||String(err)}};
