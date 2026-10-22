@@ -31,8 +31,8 @@ function form(){
    '<div class="f"><label>Nom *</label><input id="n" required></div>'+
    '<div class="f"><label>Fonction *</label><select id="fn" required><option value="">Choisir…</option>'+S.f.slice().sort((x,y)=>String(x.LIBELLE||'').localeCompare(String(y.LIBELLE||''),'fr')).map(x=>'<option value="'+x.id+'">'+esc(x.LIBELLE)+'</option>').join('')+'</select></div>'+
    '<div class="f"><label>UGECAM *</label><select id="u" required><option value="">Choisir…</option>'+ugecams.map(x=>'<option value="'+x[1]+'">'+esc(x[0])+'</option>').join('')+'</select></div>'+
-   '<div class="f"><label>Site *</label><select id="s" required disabled><option value="">Choisir…</option></select></div>'+'<div class="f wide"><label>Sites en responsabilité (facultatif)</label><div id="ms" class="checks">Choisissez une UGECAM.</div><div class="sub">À utiliser notamment si vous êtes responsable de plusieurs sites. Le site principal ci-dessus reste obligatoire.</div></div>'+
-   '<div class="f wide" id="esWrap"><label>ESMS *</label><div id="es">Choisissez UGECAM puis site.</div></div>'+
+   '<div class="f"><label>Site principal</label><select id="s" required disabled><option value="">Choisir…</option></select></div>'+'<div class="f wide"><label>Autres sites en responsabilités</label><div id="ms" class="checks">Choisissez une UGECAM.</div><div class="sub">À utiliser notamment si vous êtes responsable de plusieurs sites. Le site principal ci-dessus reste obligatoire.</div></div>'+
+   '<div class="f wide" id="esWrap"><label>ESMS rattachés à votre site principal</label><div id="es">Choisissez UGECAM puis site.</div></div>'+
    '<div class="wide info hidden" id="siegeInfo"></div>'+
    '<label class="wide"><input id="confirm" type="checkbox" required> Je confirme l’exactitude de ces informations professionnelles.</label>'+
    '<div class="wide"><button>Soumettre à validation</button><span id="msg"></span></div></form>';
