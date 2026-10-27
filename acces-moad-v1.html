@@ -1,4 +1,4 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><script src="https://docs.getgrist.com/grist-plugin-api.js"></script><script src="https://mahmboud.github.io/grist-fiche-esms/moad-ref-config.js?v=1"></script>
 <style>
 body{font:14px system-ui;background:#f5f7fb;margin:0;padding:20px;color:#172033}main{max-width:900px;margin:auto;background:#fff;border:1px solid #dde5ee;border-radius:16px;padding:22px}
 h1{margin:0 0 6px}p{color:#64748b}.g{display:grid;grid-template-columns:1fr 1fr;gap:12px}.f{display:flex;flex-direction:column;gap:5px}.wide{grid-column:1/-1}
@@ -91,5 +91,5 @@ function form(){
     }catch(err){console.error(err);msgEl.textContent=' Erreur Grist : '+(err?.message||String(err))}
   };
 }
-(async()=>{await grist.ready({requiredAccess:'full'});[S.d,S.r,S.e,S.f,S.c]=await Promise.all([ft('Autodiagnostic'),ft('DEMANDES_ACCES'),ft('REFERENTIEL_INSCRIPTION_ESMS'),ft('REFERENTIEL_FONCTIONS'),ft('CONTACTS')]);show()})()
+(async()=>{await grist.ready({requiredAccess:'full'});const cfg=await loadMoadRefConfig();S.e=(cfg.inscription||[]).map(x=>({UGECAM_ID:x[0],UGECAM_nom:x[1],SITE_ID:x[2],SITE_nom:x[3],ESMS_ID:x[4],ESMS_nom:x[5]}));S.f=(cfg.fonctions||[]).map(x=>({id:x[0],LIBELLE:x[1]}));[S.d,S.r,S.c]=await Promise.all([ft('Autodiagnostic'),ft('DEMANDES_ACCES'),ft('CONTACTS')]);show()})()
 </script></body></html>
