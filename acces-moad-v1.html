@@ -5,7 +5,14 @@ h1{margin:0 0 6px}p{color:#64748b}.g{display:grid;grid-template-columns:1fr 1fr;
 input,select{padding:9px;border:1px solid #ccd5e0;border-radius:8px}#es{border:1px solid #dde5ee;border-radius:9px;padding:8px;max-height:220px;overflow:auto}#es label{display:block;padding:5px}
 .hidden{display:none!important}.info{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:9px;padding:10px;font-size:12px}.found{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:9px;padding:12px}
 button{background:#2563eb;color:#fff;border:0;border-radius:9px;padding:10px 14px;font-weight:700}.state{padding:16px;border-radius:12px;background:#fffbeb}.ok{background:#f0fdf4}
-.email{font-weight:700;color:#334155}@media(max-width:650px){.g{grid-template-columns:1fr}.wide{grid-column:auto}}
+.email{font-weight:700;color:#334155}
+.privacy{grid-column:1/-1;border:1px solid #cbd5e1;border-radius:12px;background:#f8fafc;padding:12px 14px;color:#334155;font-size:12px;line-height:1.5}
+.privacy summary{cursor:pointer;font-weight:800;color:#0f172a;font-size:13px}
+.privacyGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin-top:10px}
+.privacyItem b{display:block;color:#0f172a;margin-bottom:2px}
+.privacyFoot{margin-top:10px;padding-top:9px;border-top:1px solid #e2e8f0}
+.privacy a{color:#2563eb}
+@media(max-width:650px){.g{grid-template-columns:1fr}.wide{grid-column:auto}.privacyGrid{grid-template-columns:1fr}}
 </style></head><body><main id="a">Chargement…</main><script>
 const a=document.getElementById('a'),S={e:[],r:[],d:[],f:[],c:[]};
 const rows=d=>Array.isArray(d)?d:Array.from({length:Math.max(0,...Object.values(d||{}).map(x=>Array.isArray(x)?x.length:0))},(_,i)=>Object.fromEntries(Object.entries(d).map(([k,v])=>[k,Array.isArray(v)?v[i]:v])));
@@ -34,6 +41,19 @@ function form(){
    '<div class="f"><label>Site principal</label><select id="s" required disabled><option value="">Choisir…</option></select></div>'+'<div class="f wide"><label>Autres sites en responsabilités</label><div id="ms" class="checks">Choisissez une UGECAM.</div><div class="sub">À utiliser notamment si vous êtes responsable de plusieurs sites. Le site principal ci-dessus reste obligatoire.</div></div>'+
    '<div class="f wide" id="esWrap"><label>ESMS rattachés à votre site principal</label><div id="es">Choisissez UGECAM puis site.</div></div>'+
    '<div class="wide info hidden" id="siegeInfo"></div>'+
+   '<details class="privacy" open><summary>🔐 Information sur le traitement de vos données professionnelles</summary>'+
+     '<div class="privacyGrid">'+
+       '<div class="privacyItem"><b>Finalités</b>Gérer votre inscription, votre rattachement professionnel, vos habilitations et l’accès aux fonctionnalités de l’Autodiagnostic MOAD. Les données servent également au pilotage et à l’accompagnement du dispositif DUI.</div>'+
+       '<div class="privacyItem"><b>Données traitées</b>Nom, prénom, adresse mail professionnelle, fonction, UGECAM, site(s), ESMS rattachés et habilitations associées. Seules les informations nécessaires au fonctionnement du dispositif sont conservées.</div>'+
+       '<div class="privacyItem"><b>Base juridique</b>Le traitement ne repose pas sur votre consentement. Il est mis en œuvre dans le cadre de l’organisation et du fonctionnement du dispositif MOAD DUI. La qualification juridique précise au titre de l’article 6 du RGPD est arrêtée avec le DPO avant généralisation.</div>'+
+       '<div class="privacyItem"><b>Destinataires</b>Les administrateurs MOAD DUI et, selon leurs habilitations, les professionnels autorisés à consulter les données nécessaires à leur périmètre. Les accès sont limités par des règles d’habilitation.</div>'+
+       '<div class="privacyItem"><b>Durée de conservation</b>Les données sont conservées pendant la durée nécessaire à la gestion de votre habilitation et au fonctionnement du dispositif, puis supprimées ou anonymisées selon la durée de conservation validée avec le DPO.</div>'+
+       '<div class="privacyItem"><b>Vos droits</b>Vous pouvez demander l’accès, la rectification et, selon les conditions prévues par le RGPD, l’effacement ou la limitation du traitement de vos données. Vous pouvez également contacter le DPO de votre organisme.</div>'+
+       '<div class="privacyItem"><b>Minimisation</b>Conformément à l’article 5.1.c du RGPD, seules les données professionnelles strictement nécessaires au dispositif sont demandées et conservées.</div>'+
+       '<div class="privacyItem"><b>Confidentialité et sécurité</b>Les données et habilitations font l’objet de restrictions d’accès et de mesures de sécurité conformément aux articles 5.1.f et 32 du RGPD.</div>'+
+     '</div>'+
+     '<div class="privacyFoot">Pour toute question relative au dispositif : <a href="mailto:moad.dui.ug-bfc@ugecam.assurance-maladie.fr">moad.dui.ug-bfc@ugecam.assurance-maladie.fr</a>. La validation ci-dessous porte uniquement sur l’exactitude de vos informations professionnelles et ne constitue pas un consentement au traitement.</div>'+
+   '</details>'+
    '<label class="wide"><input id="confirm" type="checkbox" required> Je confirme l’exactitude de ces informations professionnelles.</label>'+
    '<div class="wide"><button>Soumettre à validation</button><span id="msg"></span></div></form>';
   const uEl=document.getElementById('u'),sEl=document.getElementById('s'),esEl=document.getElementById('es'),esWrap=document.getElementById('esWrap'),siegeInfo=document.getElementById('siegeInfo');const msEl=document.getElementById('ms');
