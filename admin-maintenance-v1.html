@@ -62,6 +62,54 @@ $('exportHistCsv').onclick=async()=>{const out=$('exportAutoMsg');try{const h=aw
 
 $('exportRefCsv').onclick=async()=>{const out=$('exportAutoMsg');try{const raw=await grist.docApi.fetchTable('AUTODIAG_REFERENTIEL_QUESTIONS'),rr=rows(raw),cols=Object.keys(raw||{});dl('Autodiagnostic_Referentiel_questions.csv',csvFromObjects(rr,cols),'text/csv;charset=utf-8');out.className='ok';out.textContent=rr.length+' questions exportées (archive uniquement).'}catch(e){out.className='warn';out.textContent='Échec : '+(e?.message||e)}};
 
+
+function xlsxValue(v){
+  if(typeof v==='string'&&/^\s*\[\s*["']L["']/.test(v)){
+    try{const p=JSON.parse(v);if(Array.isArray(p)&&String(p[0]).toUpperCase()==='L')return p}catch(e){}
+  }
+  return v;
+}
+function xlsxDate(v){
+  if(v===null||v===undefined||v==='')return null;
+  if(v instanceof Date)return v.getTime()/1000;
+  if(typeof v==='number')return v;
+  const d=new Date(v);return Number.isNaN(d.getTime())?null:d.getTime()/1000;
+}
+$('exportXlsx').onclick=async()=>{const out=$('exportXlsxMsg');try{
+ if(typeof XLSX==='undefined')throw new Error('Module Excel non chargé.');
+ const [a,h,q,fields]=await Promise.all([ft('Autodiagnostic'),ft('Autodiagnostic_Historique'),ft('AUTODIAG_REFERENTIEL_QUESTIONS'),qFields()]);
+ const autoRows=a.map(r=>Object.assign({SITE_NOM:r.gristHelper_Display||'',UGECAM_NOM:r.gristHelper_Display2||''},Object.fromEntries(fields.map(k=>[k,r[k]]))));
+ const histRows=h.map(r=>({SITE_NOM:r.Site_nom||'',UGECAM_NOM:r.UGECAM||'',Volet:r.Volet||'',Question_id:r.Question_id||'',Question:r.Question||'',Type_champ:r.Type_champ||'',Ancienne_valeur:r.Ancienne_valeur??'',Nouvelle_valeur:r.Nouvelle_valeur??'',AUTEUR_EMAIL:r.Auteur||'',Horodatage:r.Horodatage||null}));
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet([{FORMAT:'MOAD_AUTODIAG_XLSX',VERSION:1,DATE_EXPORT:new Date().toISOString(),NB_SITES:autoRows.length,NB_HISTORIQUE:histRows.length}]),'Informations');
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(autoRows),'Autodiagnostic');
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(histRows),'Historique');
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(q),'Referentiel_questions');
+ XLSX.writeFile(wb,'MOAD_AUTODIAG_sauvegarde_complete.xlsx');
+ out.className='ok';out.textContent=autoRows.length+' sites + '+histRows.length+' événements exportés.';
+}catch(e){console.error(e);out.className='warn';out.textContent='Échec : '+(e?.message||String(e))}};
+
+$('importXlsxConfirm').onchange=()=>{$('importXlsx').disabled=!$('importXlsxConfirm').checked};
+$('importXlsx').onclick=async()=>{const out=$('importXlsxMsg'),file=$('importXlsxFile').files?.[0];if(!file){out.className='warn';out.textContent='Sélectionnez le fichier Excel.';return}if(!$('importXlsxConfirm').checked)return;try{
+ if(typeof XLSX==='undefined')throw new Error('Module Excel non chargé.');
+ const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});
+ const sAuto=wb.Sheets['Autodiagnostic'],sHist=wb.Sheets['Historique'];
+ if(!sAuto||!sHist)throw new Error('Onglets Autodiagnostic et Historique requis.');
+ const srcAuto=XLSX.utils.sheet_to_json(sAuto,{defval:null,raw:true});
+ const srcHist=XLSX.utils.sheet_to_json(sHist,{defval:null,raw:true});
+ const [target,fields,contacts,hist]=await Promise.all([ft('Autodiagnostic'),qFields(),ft('CONTACTS'),ft('Autodiagnostic_Historique')]);
+ const allowed=new Set(fields), byKey=new Map(target.map(r=>[siteKey(r.gristHelper_Display,r.gristHelper_Display2),r]));
+ const updates=[];let matched=0,missing=0;
+ for(const s of srcAuto){const t=byKey.get(siteKey(s.SITE_NOM,s.UGECAM_NOM));if(!t){missing++;continue}const rec={};for(const [k,v] of Object.entries(s)){if(k==='SITE_NOM'||k==='UGECAM_NOM')continue;if(allowed.has(k))rec[k]=xlsxValue(v)}updates.push(['UpdateRecord','Autodiagnostic',t.id,rec]);matched++}
+ for(let i=0;i<updates.length;i+=50)await grist.docApi.applyUserActions(updates.slice(i,i+50));
+ const remove=hist.map(r=>['RemoveRecord','Autodiagnostic_Historique',r.id]);for(let i=0;i<remove.length;i+=100)await grist.docApi.applyUserActions(remove.slice(i,i+100));
+ const contactByEmail=new Map(contacts.map(r=>[String(r.EMAIL||'').trim().toLowerCase(),r.id]).filter(x=>x[0]));
+ const adds=[];let histMissing=0;
+ for(const h of srcHist){const t=byKey.get(siteKey(h.SITE_NOM,h.UGECAM_NOM));if(!t){histMissing++;continue}adds.push(['AddRecord','Autodiagnostic_Historique',null,{Site:t.id,Site_nom:h.SITE_NOM||t.gristHelper_Display||'',UGECAM:h.UGECAM_NOM||t.gristHelper_Display2||'',Volet:h.Volet||'',Question_id:h.Question_id||'',Question:h.Question||'',Type_champ:h.Type_champ||'',Ancienne_valeur:h.Ancienne_valeur??'',Nouvelle_valeur:h.Nouvelle_valeur??'',Auteur_contact:contactByEmail.get(String(h.AUTEUR_EMAIL||'').trim().toLowerCase())||0,Horodatage:xlsxDate(h.Horodatage)}])}
+ for(let i=0;i<adds.length;i+=100)await grist.docApi.applyUserActions(adds.slice(i,i+100));
+ out.className='ok';out.innerHTML='<b>Import Excel terminé.</b><br>'+matched+' sites restaurés · '+missing+' sites absents · '+adds.length+' événements historiques.';
+}catch(e){console.error(e);out.className='warn';out.textContent='Échec : '+(e?.message||String(e))}};
+
 $('confirm').onchange=()=>{$('anon').disabled=!$('confirm').checked};
 $('anon').onclick=async()=>{const out=$('anonMsg');if(!$('confirm').checked)return;$('anon').disabled=true;try{const contacts=rows(await grist.docApi.fetchTable('CONTACTS')),actions=contacts.map(r=>['UpdateRecord','CONTACTS',r.id,{NOM:'',PRENOM:'',EMAIL:'',FONCTION:0,Cree_par:''}]);for(let i=0;i<actions.length;i+=150)await grist.docApi.applyUserActions(actions.slice(i,i+150));try{const req=rows(await grist.docApi.fetchTable('DEMANDES_ACCES'));for(let i=0;i<req.length;i+=150)await grist.docApi.applyUserActions(req.slice(i,i+150).map(r=>['RemoveRecord','DEMANDES_ACCES',r.id]))}catch(e){}out.className='ok';out.textContent='Épuration terminée.'}catch(e){console.error(e);out.className='warn';out.textContent='Échec : '+(e?.message||String(e));$('anon').disabled=false}};
 (async()=>{try{await grist.ready({requiredAccess:'full'});setupBackup()}catch(e){console.error(e)}})();
