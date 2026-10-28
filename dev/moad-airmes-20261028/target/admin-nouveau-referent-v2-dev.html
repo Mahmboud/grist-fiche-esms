@@ -1,0 +1,45 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ADMIN — Nouveau référent</title>
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<style>
+:root{--bg:#f5f7fb;--line:#dfe7f1;--text:#0f172a;--muted:#64748b;--blue:#2563eb;--green:#15803d;--red:#b91c1c}
+*{box-sizing:border-box}body{margin:0;padding:18px;background:var(--bg);font:14px Inter,system-ui,sans-serif;color:var(--text)}
+main{max-width:980px;margin:auto}.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px}h1{margin:0 0 5px;font-size:23px}.lead{color:var(--muted);margin:0 0 20px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.f{display:flex;flex-direction:column;gap:5px}.wide{grid-column:1/-1}label{font-size:12px;font-weight:750}
+input,select{width:100%;padding:9px 10px;border:1px solid #cbd5e1;border-radius:9px;background:#fff}fieldset{border:1px solid var(--line);border-radius:11px;padding:10px 12px}.checks{max-height:220px;overflow:auto;display:grid;gap:4px}.checks label{font-weight:500}.checks input{width:auto}
+.info{padding:10px 12px;border-radius:9px;background:#eff6ff;color:#1d4ed8;font-size:12px}.btn{border:0;border-radius:9px;padding:10px 14px;font-weight:800;background:var(--blue);color:#fff;cursor:pointer}.ok{margin-top:12px;padding:10px;border-radius:9px;background:#f0fdf4;color:var(--green)}.err{margin-top:12px;padding:10px;border-radius:9px;background:#fef2f2;color:var(--red)}.hidden{display:none}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}}
+</style></head><body><div style="background:#fef3c7;color:#713f12;padding:8px;font:700 12px system-ui">DEV · Administration Airmes v2</div><main><section class="card">
+<h1>➕ Inscrire un nouveau référent</h1>
+<p class="lead">Création du contact et validation de son accès en une transaction. Réservé aux administrateurs/propriétaires.</p>
+<form id="form" class="grid" autocomplete="off">
+<div class="f"><label>Prénom *</label><input id="prenom" required></div>
+<div class="f"><label>Nom *</label><input id="nom" required></div>
+<div class="f"><label>Email *</label><input id="email" type="email" required></div>
+<div class="f"><label>Fonction *</label><select id="fonction" required><option value="">Choisir…</option></select></div>
+<div class="f"><label>UGECAM *</label><select id="ugecam" required><option value="">Choisir…</option></select></div>
+<div class="f"><label>Site principal</label><select id="site" required disabled><option value="">Choisir…</option></select></div><div class="f wide"><label>Sites en responsabilité (facultatif)</label><div id="multiSites" class="checks">Choisissez d’abord une UGECAM.</div><div class="sub">Pour les directeurs ou responsables intervenant sur plusieurs sites. Le site principal est obligatoire pour un profil Site.</div></div>
+<div class="f wide"><label>Profil d'accès *</label><select id="profil" required>
+<option value="site">Référent de site</option>
+<option value="siege">Siège UGECAM</option>
+<option value="dngu">DNGU national</option>
+</select></div>
+<div class="f wide" id="esmsWrap"><fieldset><legend>ESMS déduits des sites</legend><div id="esms" class="checks">Choisissez d'abord une UGECAM puis un site.</div></fieldset></div>
+<div class="wide info">Le contact sera créé avec <b>Référent DUI = oui</b> et <b>Accès = oui</b>. Les droits restent déterminés par le profil Site / Siège / DNGU.</div>
+<div class="wide"><button class="btn" type="submit">Créer le référent</button><div id="msg"></div></div>
+</form>
+</section></main>
+<script>
+const S={fonctions:[],ugecam:[],sites:[],esms:[],contacts:[],requests:[]};
+const rows=d=>Array.isArray(d)?d:(d.id||[]).map((_,i)=>Object.fromEntries(Object.entries(d).map(([k,v])=>[k,v[i]])));
+const ft=async t=>rows(await grist.docApi.fetchTable(t));const fn=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function fillFonctions(){fn('fonction').innerHTML='<option value="">Choisir…</option>'+S.fonctions.map(f=>`<option value="${f.id}">${esc(f.LIBELLE)}</option>`).join('')}
+function fillUgecam(){fn('ugecam').innerHTML='<option value="">Choisir…</option>'+S.ugecam.map(u=>`<option value="${u.id}">${esc(u.UGECAM)}</option>`).join('')}
+function fillSites(){const sites=S.sites.filter(s=>+s.UGECAM===+fn('ugecam').value);fn('site').innerHTML='<option value="">Choisir…</option>'+sites.map(s=>`<option value="${s.id}">${esc(s.NOM)}</option>`).join('');fn('multiSites').innerHTML=sites.map(s=>`<label><input name="multiSite" type="checkbox" value="${s.id}"> ${esc(s.NOM)}</label>`).join('');renderEsms()}
+function renderEsms(){const global=fn('profil').value!=='site',primary=+fn('site').value,extra=[...document.querySelectorAll('[name=multiSite]:checked')].map(x=>+x.value),scope=new Set([primary,...extra]);fn('site').required=!global;fn('site').disabled=global||!fn('ugecam').value;document.querySelectorAll('[name=multiSite]').forEach(x=>x.disabled=global);fn('esmsWrap').classList.toggle('hidden',global);const es=S.esms.filter(e=>scope.has(+e.SITE));fn('esms').textContent=es.length?es.map(e=>e.RAISON_SOCIALE).join(' · '):'Les ESMS seront déduits automatiquement des sites sélectionnés.'}
+fn('ugecam').onchange=fillSites;fn('site').onchange=renderEsms;fn('profil').onchange=renderEsms;fn('multiSites').onchange=renderEsms;
+async function reload(){[S.fonctions,S.ugecam,S.sites,S.esms,S.contacts,S.requests]=await Promise.all(['REFERENTIEL_FONCTIONS','UGECAM','SITES','ESMS','CONTACTS','DEMANDES_ACCES'].map(ft))}
+fn('form').onsubmit=async event=>{event.preventDefault();const msg=fn('msg'),button=event.submitter||fn('form').querySelector('button');button.disabled=true;try{await reload();const email=fn('email').value.trim().toLowerCase();if(!email||!fn('nom').value.trim()||!fn('prenom').value.trim())throw Error('Nom, prénom et email sont obligatoires.');if(S.contacts.some(c=>String(c.EMAIL).trim().toLowerCase()===email))throw Error('Un contact existe déjà avec cet email.');const profile=fn('profil').value,ug=+fn('ugecam').value,global=profile!=='site',site=global?0:+fn('site').value,extra=global?[]:[...document.querySelectorAll('[name=multiSite]:checked')].map(x=>+x.value).filter(id=>id!==site);if(!S.ugecam.some(u=>u.id===ug)||!S.fonctions.some(f=>f.id===+fn('fonction').value))throw Error('UGECAM et fonction requises.');if(!global&&(!site||[site,...extra].some(id=>!S.sites.some(s=>s.id===id&&+s.UGECAM===ug))))throw Error('Sites incompatibles avec l’UGECAM.');const cid=Math.max(0,...S.contacts.map(c=>c.id))+1,rid=Math.max(0,...S.requests.map(r=>r.id))+1,scope=new Set([site,...extra]);const esms=S.esms.filter(e=>profile==='dngu'||(profile==='siege'?+e.UGECAM===ug:scope.has(+e.SITE))).map(e=>e.id);const data={NOM:fn('nom').value.trim().toUpperCase(),PRENOM:fn('prenom').value.trim(),EMAIL:email,FONCTION:+fn('fonction').value,UGECAM:ug,SITE_PRINCIPAL:site,SITES_RESP_AIRMES:['L',...extra],Referent_DUI:true,ACCES:true,ACCES_CONTACTS:false,ACCES_LISTE_ESMS:true,ACCES_ARBORESCENCE:true,SIEGE:profile==='siege',DNGU:profile==='dngu'};await grist.docApi.applyUserActions([['AddRecord','CONTACTS',cid,data],['AddRecord','PROFIL_SESSION',cid,{CONTACT:cid}],['AddRecord','DEMANDES_ACCES',rid,{EMAIL:email,CONTACT:cid,UGECAM:ug,SITE_AIRMES:site,SITES_RESP_AIRMES:['L',...extra],ESMS_AIRMES:['L',...esms],PROFIL_ACCES:profile.toUpperCase(),STATUT:'Validé',CONFIRMATION:true,DATE_DEMANDE:Date.now()/1000,DATE_VALIDATION:Date.now()/1000,VALIDE_PAR:'Propriétaire Grist'}]]);msg.className='ok';msg.textContent='Référent créé : accès validé, profil et périmètre enregistrés.';fn('form').reset();await reload();fillFonctions();fillUgecam();fillSites()}catch(e){msg.className='err';msg.textContent=e.message}finally{button.disabled=false}};
+document.querySelector('main').hidden=true;(async()=>{try{await grist.ready({requiredAccess:'full'});await ft('ADMIN_OUTILS');await reload();fillFonctions();fillUgecam();fillSites();document.querySelector('main').hidden=false}catch(e){document.body.textContent='Accès réservé au propriétaire : '+e.message}})();
+</script></body></html>

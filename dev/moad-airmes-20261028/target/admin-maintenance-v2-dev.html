@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Administration — sauvegarde & épuration</title>
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#f5f7fb;--line:#dfe7f1;--text:#0f172a;--muted:#64748b;--blue:#2563eb;--red:#b91c1c;--green:#15803d;--amber:#92400e}
+*{box-sizing:border-box}body{margin:0;padding:20px;background:var(--bg);font:14px Inter,system-ui,sans-serif;color:var(--text)}main{max-width:1100px;margin:auto}
+h1{margin:0 0 6px;font-size:26px}.lead{color:var(--muted);margin:0 0 18px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}.card h2{font-size:17px;margin:0 0 8px}.card p{color:var(--muted);line-height:1.5}
+.btn{display:inline-block;border:0;border-radius:9px;padding:10px 13px;font-weight:800;text-decoration:none;cursor:pointer}.primary{background:var(--blue);color:#fff}.danger{background:#fee2e2;color:var(--red)}
+.ok{margin-top:10px;padding:10px;border-radius:9px;background:#f0fdf4;color:var(--green)}.warn{margin-top:10px;padding:10px;border-radius:9px;background:#fffbeb;color:var(--amber)}
+.small{font-size:11px}.hidden{display:none}input[type=file]{max-width:100%}@media(max-width:850px){.grid{grid-template-columns:1fr}}
+</style></head><body><div style="background:#fef3c7;color:#713f12;padding:8px;font:700 12px system-ui">DEV · Administration Airmes v2</div><main>
+<h1>🛠 Administration — sauvegarde & épuration</h1><p class="lead">Outils réservés au propriétaire du document.</p>
+<div class="grid">
+<section class="card"><h2>💾 Sauvegarde du document</h2><p>Téléchargez une sauvegarde complète au format <b>.grist</b>.</p><a id="backup" class="btn primary" target="_blank" rel="noopener">Télécharger la sauvegarde .grist</a><div id="backupHelp" class="warn hidden small">Utilisez le menu Grist <b>Partager → Télécharger le document</b>.</div></section>
+<section class="card"><h2>👥 Sauvegarde CONTACTS</h2><p>Exporte <b>toutes les colonnes</b> de CONTACTS avec leurs valeurs brutes Grist.</p><button id="contacts" class="btn primary">Télécharger CONTACTS.csv</button><div id="contactMsg"></div></section>
+<section class="card"><h2>♻️ Restaurer CONTACTS</h2><p>Restaure les colonnes physiques et les identifiants du CSV. Les suppressions de contacts sont refusées pour préserver les références.</p><input id="restoreFile" type="file" accept=".csv,text/csv"><br><br><button id="restore" class="btn primary">Restaurer CONTACTS depuis ce CSV</button><div id="restoreMsg"></div></section>
+<section class="card"><h2>📤 Export Autodiag</h2><p>Exports lisibles pour contrôle ou archivage.</p><button id="exportAutoCsv" class="btn primary">Autodiagnostic.csv</button> <button id="exportHistCsv" class="btn primary">Historique.csv</button><br><br><button id="exportRefCsv" class="btn primary">Référentiel_questions.csv</button><div id="exportAutoMsg"></div></section>
+<section class="card"><h2>📗 Sauvegarde Excel Autodiag</h2><p>Crée un seul fichier <b>.xlsx</b> contenant les réponses, l’historique et le référentiel des questions. C’est le format recommandé pour transférer l’Autodiag vers une autre version.</p><button id="exportXlsx" class="btn primary">Exporter Autodiag.xlsx</button><div id="exportXlsxMsg"></div></section>
+<section class="card"><h2>📥 Importer / restaurer Autodiag depuis Excel</h2><p>Importe un fichier <b>Autodiag.xlsx</b>. Les réponses compatibles sont restaurées par couple <b>UGECAM + site</b> et l’historique est remappé sur les bons sites. Le référentiel de la version cible n’est pas remplacé.</p><input id="importXlsxFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><br><br><label class="small"><input id="importXlsxConfirm" type="checkbox"> Je confirme vouloir remplacer les réponses compatibles et l’historique Autodiag de ce document.</label><br><br><button id="importXlsx" class="btn primary" disabled>Importer Autodiag.xlsx</button><div id="importXlsxMsg"></div></section>
+<section class="card"><h2>🧹 Effacer les données individuelles</h2><p>À utiliser uniquement sur une copie de développement.</p><label class="small"><input id="confirm" type="checkbox"> Je confirme être dans une copie et avoir sauvegardé le .grist et CONTACTS.csv.</label><br><br><button id="anon" class="btn danger" disabled>Effacer toutes les données individuelles</button><div id="anonMsg"></div></section>
+</div></main>
+<script>
+const $=id=>document.getElementById(id);
+function rows(d){if(Array.isArray(d))return d;const keys=Object.keys(d||{}),n=Math.max(0,...keys.map(k=>Array.isArray(d[k])?d[k].length:0));return Array.from({length:n},(_,i)=>Object.fromEntries(keys.map(k=>[k,Array.isArray(d[k])?d[k][i]:d[k]])))}
+function csvCell(v){const s=JSON.stringify(v===undefined?null:v);return /[;"\n\r]/.test(s)?'"'+s.replaceAll('"','""')+'"':s}
+function detectSep(text){const first=text.split(/\r?\n/)[0]||'',cands=[';',',','\t'];let best=';',score=-1;for(const s of cands){const n=first.split(s).length;if(n>score){score=n;best=s}}return best}
+function parseCsv(text,sep){const out=[];let row=[],cur='',q=false;for(let i=0;i<text.length;i++){const ch=text[i],nx=text[i+1];if(q){if(ch==='"'&&nx==='"'){cur+='"';i++}else if(ch==='"')q=false;else cur+=ch}else{if(ch==='"')q=true;else if(ch===sep){row.push(cur);cur=''}else if(ch==='\n'){row.push(cur.replace(/\r$/,''));out.push(row);row=[];cur=''}else cur+=ch}}row.push(cur.replace(/\r$/,''));if(row.some(x=>String(x||'').trim()!==''))out.push(row);return out}
+function decode(cell){const s=String(cell??'');if(s==='')return null;try{return JSON.parse(s)}catch{return s}}
+function dl(name,text,type='text/plain;charset=utf-8'){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
+function csvFromObjects(objs,cols){const lines=[cols.join(';')];for(const r of objs)lines.push(cols.map(c=>csvCell(r[c])).join(';'));return '\ufeff'+lines.join('\r\n')}
+function L(v){return Array.isArray(v)?(v[0]==='L'?v.slice(1):v):[]}
+function uniq(a){return [...new Set(a.filter(Boolean))]}
+function siteKey(name,ug){return String(ug||'').trim()+'||'+String(name||'').trim()}
+async function ft(t){return rows(await grist.docApi.fetchTable(t))}
+async function qFields(){const q=await ft('AUTODIAG_REFERENTIEL_QUESTIONS');return uniq(q.flatMap(r=>[r.COL_REPONSE,r.COL_PRECISIONS,r.COL_CHOIX1,r.COL_CHOIX2,r.COL_CHOIX3,r.NOTES_COL]))}
+function setupBackup(){const link=$('backup');link.removeAttribute('target');link.href='#';link.onclick=async event=>{event.preventDefault();const help=$('backupHelp');try{help.classList.remove('hidden');help.textContent='Préparation de la sauvegarde…';const access=await grist.docApi.getAccessToken({readOnly:true}),url=new URL(access.baseUrl.replace(/\/$/,'')+'/download');url.searchParams.set('auth',access.token);const response=await fetch(url.href,{credentials:'omit',referrerPolicy:'no-referrer'});if(!response.ok)throw Error('Téléchargement refusé ('+response.status+').');const blob=await response.blob();if(!blob.size)throw Error('Sauvegarde vide.');const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='MOAD_DEV_sauvegarde_'+new Date().toISOString().slice(0,10)+'.grist';a.click();setTimeout(()=>URL.revokeObjectURL(u),60000);help.textContent='Sauvegarde .grist téléchargée.'}catch(e){help.textContent='Téléchargement automatique indisponible. Utilisez le menu Grist Partager → Télécharger le document.'}}}
+
+
+$('contacts').onclick=async()=>{const out=$('contactMsg');try{const raw=await grist.docApi.fetchTable('CONTACTS'),rr=rows(raw),cols=Object.keys(raw||{}),lines=[cols.join(';')];for(const r of rr)lines.push(cols.map(c=>csvCell(r[c])).join(';'));dl('CONTACTS_sauvegarde_integrale.csv','\ufeff'+lines.join('\r\n'),'text/csv;charset=utf-8');out.className='ok';out.textContent=rr.length+' contacts exportés · '+cols.length+' colonnes.'}catch(e){console.error(e);out.className='warn';out.textContent='Échec : '+(e?.message||String(e))}};
+
+$('restore').onclick=async()=>{const out=$('restoreMsg'),file=$('restoreFile').files?.[0];if(!file){out.className='warn';out.textContent='Sélectionnez le CSV de sauvegarde.';return}try{
+ const text=(await file.text()).replace(/^\ufeff/,''),sep=detectSep(text),grid=parseCsv(text,sep);if(grid.length<2)throw new Error('CSV vide.');
+ const headers=grid[0].map(x=>String(x||'').trim()),idx=Object.fromEntries(headers.map((h,i)=>[h,i])),data=grid.slice(1).filter(r=>r.some(x=>String(x||'').trim()!==''));
+ if(idx.CLE_CONTACT===undefined&&idx.id===undefined)throw new Error('Le CSV doit contenir CLE_CONTACT ou id.');
+ const raw=await grist.docApi.fetchTable('CONTACTS'),current=rows(raw),currentCols=new Set(Object.keys(raw||{}));
+ const [tables,columns]=await Promise.all([ft('_grist_Tables'),ft('_grist_Tables_column')]);const tableId=tables.find(t=>t.tableId==='CONTACTS')?.id;const physical=new Set(columns.filter(c=>+c.parentId===+tableId&&!c.isFormula&&c.colId!=='manualSort').map(c=>c.colId));
+ const writable=headers.filter(h=>currentCols.has(h)&&physical.has(h));
+ const byKey=new Map(current.map(r=>[String(r.CLE_CONTACT||'').trim(),r]).filter(x=>x[0])),byId=new Map(current.map(r=>[String(r.id),r]));
+ const keepIds=new Set(),updates=[],adds=[];
+ for(const line of data){const key=idx.CLE_CONTACT!==undefined?String(decode(line[idx.CLE_CONTACT])??'').trim():'',rid=idx.id!==undefined?String(decode(line[idx.id])??'').trim():'',existing=(key&&byKey.get(key))||(rid&&byId.get(rid))||null,rec={};for(const col of writable){const p=idx[col];if(p!==undefined)rec[col]=decode(line[p])}if(existing){keepIds.add(Number(existing.id));updates.push(['UpdateRecord','CONTACTS',existing.id,rec])}else{const requestedId=rid&&Number.isInteger(Number(rid))&&Number(rid)>0?Number(rid):null;if(!requestedId)throw Error('Un identifiant numérique est requis pour restaurer un contact absent.');adds.push(['AddRecord','CONTACTS',requestedId,rec])}}
+ const sourceKeys=new Set(data.map(line=>idx.CLE_CONTACT!==undefined?String(decode(line[idx.CLE_CONTACT])??'').trim():'').filter(Boolean));
+ const remove=current.filter(r=>!keepIds.has(Number(r.id))&&!sourceKeys.has(String(r.CLE_CONTACT||'').trim())).map(r=>['RemoveRecord','CONTACTS',r.id]);
+ if(remove.length)throw Error('Ce CSV omet '+remove.length+' contacts existants. La restauration ne supprime pas de contacts afin de préserver leurs références. Utilisez une sauvegarde .grist pour une restauration intégrale.');const all=[...updates,...adds];if(!all.length)throw Error('Aucune ligne à restaurer.');const keys=data.map(r=>idx.id!==undefined?String(decode(r[idx.id])):'');if(new Set(keys).size!==keys.length&&idx.id!==undefined)throw Error('Identifiants dupliqués dans le CSV.');const profiles=await ft('PROFIL_SESSION'),existingProfiles=new Set(profiles.map(p=>+p.CONTACT));for(const action of [...all]){const rid=+action[2];if(rid&&!existingProfiles.has(rid))all.push(['AddRecord','PROFIL_SESSION',rid,{CONTACT:rid}])}await grist.docApi.applyUserActions(all);
+ out.className='ok';out.innerHTML='<b>CONTACTS restaurée depuis le CSV.</b><br>'+updates.length+' mises à jour · '+adds.length+' ajouts · '+remove.length+' suppressions.<br>'+writable.length+' colonnes physiques restaurées.';
+}catch(e){console.error(e);out.className='warn';out.textContent='Échec : '+(e?.message||String(e))}};
+
+$('exportAutoCsv').onclick=async()=>{const out=$('exportAutoMsg');try{const [a,fields]=await Promise.all([ft('Autodiagnostic_DEV'),qFields()]);const cols=['SITE_NOM','UGECAM_NOM',...fields];const data=a.map(r=>Object.assign({SITE_NOM:r.Site_nom||'',UGECAM_NOM:r.UGECAM_nom||''},Object.fromEntries(fields.map(f=>[f,r[f]]))));dl('Autodiagnostic_reponses.csv',csvFromObjects(data,cols),'text/csv;charset=utf-8');out.className='ok';out.textContent=a.length+' sites exportés · '+fields.length+' champs de réponse/notes.'}catch(e){out.className='warn';out.textContent='Échec : '+(e?.message||e)}};
+
+$('exportHistCsv').onclick=async()=>{const out=$('exportAutoMsg');try{const h=await ft('Autodiagnostic_Historique_DEV');const cols=['SITE_NOM','UGECAM_NOM','Volet','Question_id','Question','Type_champ','Ancienne_valeur','Nouvelle_valeur','AUTEUR_EMAIL','Horodatage'];const data=h.map(r=>({SITE_NOM:r.Site_nom||'',UGECAM_NOM:r.UGECAM||'',Volet:r.Volet,Question_id:r.Question_id,Question:r.Question,Type_champ:r.Type_champ,Ancienne_valeur:r.Ancienne_valeur,Nouvelle_valeur:r.Nouvelle_valeur,AUTEUR_EMAIL:r.Auteur||'',Horodatage:r.Horodatage}));dl('Autodiagnostic_Historique.csv',csvFromObjects(data,cols),'text/csv;charset=utf-8');out.className='ok';out.textContent=h.length+' événements historiques exportés.'}catch(e){out.className='warn';out.textContent='Échec : '+(e?.message||e)}};
+
+$('exportRefCsv').onclick=async()=>{const out=$('exportAutoMsg');try{const raw=await grist.docApi.fetchTable('AUTODIAG_REFERENTIEL_QUESTIONS'),rr=rows(raw),cols=Object.keys(raw||{});dl('Autodiagnostic_Referentiel_questions.csv',csvFromObjects(rr,cols),'text/csv;charset=utf-8');out.className='ok';out.textContent=rr.length+' questions exportées (archive uniquement).'}catch(e){out.className='warn';out.textContent='Échec : '+(e?.message||e)}};
+
+
+function xlsxValue(v){
+  if(typeof v==='string'&&/^\s*\[\s*["']L["']/.test(v)){
+    try{const p=JSON.parse(v);if(Array.isArray(p)&&String(p[0]).toUpperCase()==='L')return p}catch(e){}
+  }
+  return v;
+}
+function xlsxDate(v){
+  if(v===null||v===undefined||v==='')return null;
+  if(v instanceof Date)return v.getTime()/1000;
+  if(typeof v==='number')return v;
+  const d=new Date(v);return Number.isNaN(d.getTime())?null:d.getTime()/1000;
+}
+$('exportXlsx').onclick=async()=>{const out=$('exportXlsxMsg');try{
+ if(typeof XLSX==='undefined')throw new Error('Module Excel non chargé.');
+ const [a,h,q,fields]=await Promise.all([ft('Autodiagnostic_DEV'),ft('Autodiagnostic_Historique_DEV'),ft('AUTODIAG_REFERENTIEL_QUESTIONS'),qFields()]);
+ const autoRows=a.map(r=>Object.assign({SITE_NOM:r.Site_nom||'',UGECAM_NOM:r.UGECAM_nom||''},Object.fromEntries(fields.map(k=>[k,r[k]]))));
+ const histRows=h.map(r=>({SITE_NOM:r.Site_nom||'',UGECAM_NOM:r.UGECAM||'',Volet:r.Volet||'',Question_id:r.Question_id||'',Question:r.Question||'',Type_champ:r.Type_champ||'',Ancienne_valeur:r.Ancienne_valeur??'',Nouvelle_valeur:r.Nouvelle_valeur??'',AUTEUR_EMAIL:r.Auteur||'',Horodatage:r.Horodatage||null}));
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet([{FORMAT:'MOAD_AUTODIAG_XLSX',VERSION:1,DATE_EXPORT:new Date().toISOString(),NB_SITES:autoRows.length,NB_HISTORIQUE:histRows.length}]),'Informations');
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(autoRows.map(r=>Object.fromEntries(Object.entries(r).map(([k,v])=>[k,Array.isArray(v)||v&&typeof v==='object'?JSON.stringify(v):v])))),'Autodiagnostic');
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(histRows),'Historique');
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(q),'Referentiel_questions');
+ XLSX.writeFile(wb,'MOAD_AUTODIAG_sauvegarde_complete.xlsx');
+ out.className='ok';out.textContent=autoRows.length+' sites + '+histRows.length+' événements exportés.';
+}catch(e){console.error(e);out.className='warn';out.textContent='Échec : '+(e?.message||String(e))}};
+
+$('importXlsxConfirm').onchange=()=>{$('importXlsx').disabled=!$('importXlsxConfirm').checked};
+$('importXlsx').onclick=async()=>{const out=$('importXlsxMsg'),file=$('importXlsxFile').files?.[0];if(!file){out.className='warn';out.textContent='Sélectionnez le fichier Excel.';return}if(!$('importXlsxConfirm').checked)return;try{
+ if(typeof XLSX==='undefined')throw new Error('Module Excel non chargé.');
+ const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});
+ const sAuto=wb.Sheets['Autodiagnostic']||wb.Sheets['Autodiagnostic_DEV'],sHist=wb.Sheets['Historique'];
+ if(!sAuto||!sHist)throw new Error('Onglets Autodiagnostic et Historique requis.');
+ const srcAuto=XLSX.utils.sheet_to_json(sAuto,{defval:null,raw:true});
+ const srcHist=XLSX.utils.sheet_to_json(sHist,{defval:null,raw:true});
+ const [target,fields,contacts,hist]=await Promise.all([ft('Autodiagnostic_DEV'),qFields(),ft('CONTACTS'),ft('Autodiagnostic_Historique_DEV')]);
+ const allowed=new Set(fields), byKey=new Map(target.map(r=>[siteKey(r.Site_nom,r.UGECAM_nom),r]));
+ const updates=[];let matched=0,missing=0;
+ for(const s of srcAuto){const t=byKey.get(siteKey(s.SITE_NOM,s.UGECAM_NOM));if(!t){missing++;continue}const rec={};for(const [k,v] of Object.entries(s)){if(k==='SITE_NOM'||k==='UGECAM_NOM')continue;if(allowed.has(k))rec[k]=xlsxValue(v)}updates.push(['UpdateRecord','Autodiagnostic_DEV',t.id,rec]);matched++}
+ if(!updates.length)throw Error('Aucun site compatible : rien n’a été modifié.');if(missing)throw Error(missing+' sites absents de la cible : import annulé sans modification.');if(new Set(updates.map(a=>a[2])).size!==updates.length)throw Error('Plusieurs lignes Excel correspondent au même site.');
+ const remove=hist.map(r=>['RemoveRecord','Autodiagnostic_Historique_DEV',r.id]);
+ const contactByEmail=new Map(contacts.map(r=>[String(r.EMAIL||'').trim().toLowerCase(),r.id]).filter(x=>x[0]));
+ const adds=[];let histMissing=0;
+ for(const h of srcHist){const t=byKey.get(siteKey(h.SITE_NOM,h.UGECAM_NOM));if(!t){histMissing++;continue}adds.push(['AddRecord','Autodiagnostic_Historique_DEV',null,{Site:t.id,Site_nom:h.SITE_NOM||t.Site_nom||'',UGECAM:h.UGECAM_NOM||t.UGECAM_nom||'',Volet:h.Volet||'',Question_id:h.Question_id||'',Question:h.Question||'',Type_champ:h.Type_champ||'',Ancienne_valeur:h.Ancienne_valeur??'',Nouvelle_valeur:h.Nouvelle_valeur??'',Auteur_contact:contactByEmail.get(String(h.AUTEUR_EMAIL||'').trim().toLowerCase())||0,Horodatage:xlsxDate(h.Horodatage)}])}
+ if(histMissing)throw Error(histMissing+' événements historiques sans site compatible : import annulé.');await grist.docApi.applyUserActions([...updates,...remove,...adds]);
+ out.className='ok';out.innerHTML='<b>Import Excel terminé.</b><br>'+matched+' sites restaurés · '+missing+' sites absents · '+adds.length+' événements historiques.';
+}catch(e){console.error(e);out.className='warn';out.textContent='Échec : '+(e?.message||String(e))}};
+
+$('confirm').onchange=()=>{$('anon').disabled=!$('confirm').checked};
+$('anon').onclick=async()=>{const out=$('anonMsg');if(!$('confirm').checked)return;$('anon').disabled=true;try{const contacts=rows(await grist.docApi.fetchTable('CONTACTS')),actions=contacts.map(r=>['UpdateRecord','CONTACTS',r.id,{NOM:'',PRENOM:'',EMAIL:'',FONCTION:0,Cree_par:''}]);for(let i=0;i<actions.length;i+=150)await grist.docApi.applyUserActions(actions.slice(i,i+150));try{const req=rows(await grist.docApi.fetchTable('DEMANDES_ACCES'));for(let i=0;i<req.length;i+=150)await grist.docApi.applyUserActions(req.slice(i,i+150).map(r=>['RemoveRecord','DEMANDES_ACCES',r.id]))}catch(e){}out.className='ok';out.textContent='Épuration terminée.'}catch(e){console.error(e);out.className='warn';out.textContent='Échec : '+(e?.message||String(e));$('anon').disabled=false}};
+document.querySelector('main').hidden=true;(async()=>{try{await grist.ready({requiredAccess:'full'});await ft('ADMIN_OUTILS');document.querySelector('main').hidden=false;setupBackup()}catch(e){const p=document.createElement('p');p.textContent='Accès réservé au propriétaire.';document.body.append(p)}})();
+</script></body></html>
