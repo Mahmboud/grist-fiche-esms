@@ -28,7 +28,7 @@ function field(l,v,full=false,soft=false){return empty(v)?'':`<div class="field 
 function chip(v){return empty(v)?'':`<span class="chip">${esc(v)}</span>`}
 function badge(v,c='gray'){return`<span class="badge ${c}">${esc(v)}</span>`}
 async function fetchTable(id){if(grist?.docApi?.fetchTable)return rows(await grist.docApi.fetchTable(id));if(grist?.raw?.docApi?.fetchTable)return rows(await grist.raw.docApi.fetchTable(id));throw new Error('API du document indisponible')}
-async function load(){const [contacts,esms,ugecam,sites]=await Promise.all([fetchTable(T.contacts),fetchTable(T.esms),fetchTable(T.ugecam),fetchTable(T.sites)]);const fonctions=DEV_CFG.fonctions.map(x=>({id:x.id,LIBELLE:x.libelle}));state.tables={contacts,esms,ugecam,sites,fonctions}}
+async function load(){const [contacts,esms,ugecam,sites]=await Promise.all([fetchTable(T.contacts),fetchTable(T.esms).catch(()=>[]),fetchTable(T.ugecam),fetchTable(T.sites)]);const fonctions=DEV_CFG.fonctions.map(x=>({id:x.id,LIBELLE:x.libelle}));state.tables={contacts,esms,ugecam,sites,fonctions}}
 function contactName(c){return [txt(c.PRENOM),txt(c.NOM)].filter(Boolean).join(' ')||txt(c.NOM_PRENOM_contact)||'Contact'}
 function ugecamName(c){return txt(byId(state.tables.ugecam,c.UGECAM)?.UGECAM)}
 function siteName(c){return txt(byId(state.tables.sites,c.SITES_nomenclature_UGECAM)?.NOM_SITE)}
