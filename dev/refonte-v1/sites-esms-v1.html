@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sites & ESMS — refonte v1</title>
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<style>
+:root{--bg:#f5f7fb;--s:#fff;--line:#e2e8f0;--txt:#0f172a;--muted:#64748b;--blue:#2563eb;--soft:#eff6ff;--shadow:0 1px 2px rgba(15,23,42,.05),0 8px 24px rgba(15,23,42,.04)}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,sans-serif}body{padding:10px}button,input,select{font:inherit}.shell{display:grid;grid-template-columns:330px minmax(0,1fr);gap:12px;max-width:1680px;margin:auto}.side{position:sticky;top:10px;height:calc(100vh - 20px);background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}.head{padding:14px;border-bottom:1px solid var(--line)}.title{font-size:15px;font-weight:900}.sub{font-size:11px;color:var(--muted);margin-top:3px}.search,.filter{width:100%;margin-top:8px;padding:9px;border:1px solid #cbd5e1;border-radius:9px;background:#fff}.list{overflow:auto;padding:6px}.siteBtn{width:100%;text-align:left;border:0;background:transparent;padding:10px;border-radius:10px;cursor:pointer}.siteBtn:hover{background:#f8fafc}.siteBtn.active{background:var(--soft);box-shadow:inset 3px 0 var(--blue)}.siteName{font-weight:850;font-size:12px}.siteMeta{font-size:10.5px;color:var(--muted);margin-top:3px}.main{min-width:0}.hero,.card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}.hero{padding:18px;margin-bottom:12px}.eyebrow{font-size:10px;font-weight:900;color:var(--blue);text-transform:uppercase;letter-spacing:.08em}.hero h1{margin:5px 0 4px;font-size:27px}.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.cardHead{padding:13px 15px;border-bottom:1px solid var(--line);font-weight:900}.cardBody{padding:14px}.direction{white-space:pre-line;line-height:1.55;font-weight:750}.services{margin-top:12px}.service{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px;background:#fff}.serviceName{font-weight:850}.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.chip{background:#f1f5f9;border-radius:999px;padding:4px 8px;font-size:10.5px;font-weight:750}.finess{color:var(--blue)}.address{color:var(--muted);font-size:11px;margin-top:6px;white-space:pre-line}.empty{padding:35px;text-align:center;color:var(--muted);background:#fff;border:1px dashed #cbd5e1;border-radius:16px}.count{font-size:11px;color:var(--muted);margin-top:5px}.foot{font-size:10.5px;color:var(--muted);margin-top:12px}
+@media(max-width:850px){.shell{grid-template-columns:1fr}.side{position:static;height:400px}.grid{grid-template-columns:1fr}}
+</style></head>
+<body><main id="app"><div class="empty">Chargement des sites…</div></main>
+<script>
+const app=document.getElementById('app');
+const state={sites:[],esms:[],ugecam:[],selected:null,q:'',ug:''};
+const rows=d=>Array.isArray(d)?d:Array.from({length:Math.max(0,...Object.values(d||{}).map(v=>Array.isArray(v)?v.length:0))},(_,i)=>Object.fromEntries(Object.entries(d||{}).map(([k,v])=>[k,Array.isArray(v)?v[i]:v])));
+const ft=async t=>rows(await grist.docApi.fetchTable(t));
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function ugName(id){return state.ugecam.find(u=>Number(u.id)===Number(id))?.UGECAM||''}
+function siteServices(id){return state.esms.filter(e=>Number(e.SITES_nomenclature_UGECAM)===Number(id))}
+function filteredSites(){
+  const q=state.q.trim().toLowerCase();
+  return state.sites.filter(s=>{
+    if(!String(s.NOM_SITE||'').trim())return false;
+    if(state.ug&&Number(s.UGECAM)!==Number(state.ug))return false;
+    if(!q)return true;
+    const es=siteServices(s.id);
+    return [s.NOM_SITE,ugName(s.UGECAM),s.DIRECTION,...es.flatMap(e=>[e.RAISON_SOCIALE,e.FINESS,e.Typologie_ESMS])].join(' ').toLowerCase().includes(q);
+  }).sort((a,b)=>ugName(a.UGECAM).localeCompare(ugName(b.UGECAM),'fr')||String(a.NOM_SITE).localeCompare(String(b.NOM_SITE),'fr'));
+}
+function sidebar(){
+  const list=filteredSites(),ugs=[...new Map(state.sites.filter(s=>s.NOM_SITE).map(s=>[Number(s.UGECAM),ugName(s.UGECAM)])).entries()].filter(x=>x[1]).sort((a,b)=>a[1].localeCompare(b[1],'fr'));
+  return '<aside class="side"><div class="head"><div class="title">Sites & ESMS</div><div class="sub">Arborescence Airmes : UGECAM → Site → ESMS / services</div><input id="q" class="search" placeholder="Site, direction, ESMS, FINESS…" value="'+esc(state.q)+'"><select id="ug" class="filter"><option value="">Toutes les UGECAM</option>'+ugs.map(([id,n])=>'<option value="'+id+'" '+(String(state.ug)===String(id)?'selected':'')+'>'+esc(n)+'</option>').join('')+'</select><div class="count">'+list.length+' site(s)</div></div><div class="list">'+list.map(s=>'<button class="siteBtn '+(Number(state.selected)===Number(s.id)?'active':'')+'" data-site="'+s.id+'"><div class="siteName">'+esc(s.NOM_SITE)+'</div><div class="siteMeta">'+esc(ugName(s.UGECAM))+' · '+siteServices(s.id).length+' ESMS/service(s)</div></button>').join('')+'</div></aside>';
+}
+function detail(){
+  const list=filteredSites();let s=state.sites.find(x=>Number(x.id)===Number(state.selected));if(!s||!list.some(x=>Number(x.id)===Number(s.id))){s=list[0];state.selected=s?.id||null}
+  if(!s)return '<section class="main"><div class="empty">Aucun site dans ce périmètre.</div></section>';
+  const es=siteServices(s.id).sort((a,b)=>String(a.RAISON_SOCIALE||'').localeCompare(String(b.RAISON_SOCIALE||''),'fr'));
+  const direction=String(s.DIRECTION||'').trim()?'<div class="direction">'+esc(s.DIRECTION)+'</div>':'<div class="muted">Direction non renseignée dans CONTACTS.</div>';
+  const services=es.length?es.map(e=>'<article class="service"><div class="serviceName">'+esc(e.RAISON_SOCIALE||'ESMS / service')+'</div><div class="chips">'+(e.Typologie_ESMS?'<span class="chip">'+esc(e.Typologie_ESMS)+'</span>':'')+(e.FINESS?'<span class="chip finess">FINESS '+esc(e.FINESS)+'</span>':'<span class="chip">FINESS non renseigné</span>')+'</div>'+(e.ADRESSE?'<div class="address">'+esc(e.ADRESSE)+'</div>':'')+'</article>').join(''):'<div class="muted">Aucun ESMS/service rattaché.</div>';
+  return '<section class="main"><div class="hero"><div class="eyebrow">Fiche site Airmes</div><h1>'+esc(s.NOM_SITE)+'</h1><div class="muted">'+esc(ugName(s.UGECAM))+'</div></div><div class="grid"><div class="card"><div class="cardHead">Direction du site</div><div class="cardBody">'+direction+'</div></div><div class="card"><div class="cardHead">Identité du site</div><div class="cardBody"><b>'+esc(s.NOM_SITE)+'</b><div class="muted" style="margin-top:5px">'+esc(ugName(s.UGECAM))+'</div><div class="foot">'+es.length+' ESMS/service(s) rattaché(s)</div></div></div></div><div class="card services"><div class="cardHead">ESMS / services du site</div><div class="cardBody">'+services+'</div></div><div class="foot">Source de vérité : nomenclature Airmes pour les sites ; FINESS pour les ESMS/services. La direction est dérivée de CONTACTS.</div></section>';
+}
+function render(){app.innerHTML='<div class="shell">'+sidebar()+detail()+'</div>';document.getElementById('q')?.addEventListener('input',e=>{state.q=e.target.value;const pos=e.target.selectionStart;render();requestAnimationFrame(()=>{const x=document.getElementById('q');x?.focus();try{x?.setSelectionRange(pos,pos)}catch{}})});document.getElementById('ug')?.addEventListener('change',e=>{state.ug=e.target.value;state.selected=null;render()});document.querySelectorAll('[data-site]').forEach(b=>b.onclick=()=>{state.selected=Number(b.dataset.site);render()})}
+(async()=>{try{await grist.ready({requiredAccess:'full'});[state.sites,state.esms,state.ugecam]=await Promise.all([ft('SITES'),ft('ESMS'),ft('UGECAM')]);render()}catch(e){console.error(e);app.innerHTML='<div class="empty"><b>Erreur de chargement</b><br>'+esc(e?.message||e)+'</div>'}})();
+</script></body></html>
