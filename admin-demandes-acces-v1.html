@@ -20,7 +20,7 @@ function show(){
 }
 async function validate(id){
  const r=S.r.find(x=>Number(x.id)===id),c=linked(r),t=siteType(r.SITE),siege=t==='SIEGE',dngu=t==='DNGU';
- const data={NOM:r.NOM,PRENOM:r.PRENOM,FONCTION:Number(r.FONCTION),EMAIL:String(r.EMAIL||'').toLowerCase(),UGECAM:Number(r.UGECAM)||0,SITE_PRINCIPAL:Number(r.SITE)||0,SITES_EN_RESPONSABILITE:['L',...new Set(L(r.SITES_EN_RESPONSABILITE).map(Number).filter(x=>x&&x!==Number(r.SITE)))],SIEGE:siege,DNGU:dngu,Referent_DUI:true,ACCES:true,ACCES_CONTACTS:false,ACCES_LISTE_ESMS:true,ACCES_ARBORESCENCE:true};
+ const data={NOM:r.NOM,PRENOM:r.PRENOM,FONCTION:Number(r.FONCTION),EMAIL:String(r.EMAIL||'').toLowerCase(),UGECAM:Number(r.UGECAM)||0,SITE_PRINCIPAL:Number(r.SITE)||0,SITES_EN_RESPONSABILITE:['L',...new Set(L(r.SITES_EN_RESPONSABILITE).map(Number).filter(x=>x&&x!==Number(r.SITE)))],SIEGE:siege,DNGU:dngu,Referent_DUI:true,ACCES:true,ACCES_CONTACTS:false,ACCES_LISTE_ESMS:true};
  let cid;if(c){cid=c.id;await grist.docApi.applyUserActions([['UpdateRecord','CONTACTS',cid,data]])}else{const q=await grist.docApi.applyUserActions([['AddRecord','CONTACTS',null,data]]);cid=Array.isArray(q)?q[0]:q}
  await grist.docApi.applyUserActions([['UpdateRecord','DEMANDES_ACCES',id,{STATUT:'Validé',CONTACT:Number(cid)||0,DATE_VALIDATION:Date.now()/1000,VALIDE_PAR:'Administrateur Grist',NOM:'',PRENOM:'',FONCTION:0}]]);
  await reload();
