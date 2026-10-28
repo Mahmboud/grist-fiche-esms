@@ -27,6 +27,13 @@ for t in ['SITES','ESMS','Autodiagnostic_DEV','PROFIL_SESSION']:
             if isinstance(v,objtypes.RaisedException):errors.append((t,r['id'],k,objtypes.encode_object(v)))
 check('Aucune erreur dans les cellules des nouvelles tables',not errors)
 check('116 questions conservées',len(records(e,'AUTODIAG_REFERENTIEL_QUESTIONS'))==116)
+ref=next(t['id'] for t in records(e,'_grist_Tables') if t['tableId']=='Autodiagnostic_DEV')
+audit={r['colId']:r for r in records(e,'_grist_Tables_column') if r['parentId']==ref}
+check('Déclencheurs date et auteur conservés',audit['Derniere_mise_a_jour']['recalcWhen']==audit['Derniere_mise_a_jour_contact']['recalcWhen']==2)
+first_id=aa[0]['id']
+act(e,['UpdateRecord','Autodiagnostic_DEV',first_id,{'Derniere_mise_a_jour':1}])
+act(e,['UpdateRecord','Autodiagnostic_DEV',first_id,{'ORG01_Texte':'Test de déclencheur en mémoire uniquement'}])
+check('Date de modification recalculée lors de la saisie',next(r for r in records(e,'Autodiagnostic_DEV') if r['id']==first_id)['Derniere_mise_a_jour']>1)
 for t in ['AUTODIAG_REFERENTIEL_QUESTIONS','REFERENTIEL_FONCTIONS','REFERENTIEL_INSCRIPTION_ESMS']:
     rid=next(r['id'] for r in records(e,'_grist_ACLResources') if r['tableId']==t)
     rr=sorted([r for r in records(e,'_grist_ACLRules') if r['resource']==rid],key=lambda r:r['rulePos'])

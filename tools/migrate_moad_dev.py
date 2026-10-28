@@ -131,6 +131,11 @@ def main(source,outdir):
     for r in source_cols:
         if not r['isFormula'] and r['formula']:
             act(e,['ModifyColumn','Autodiagnostic_DEV',r['colId'],{'formula':r['formula'],'isFormula':False}])
+    newref=next(t['id'] for t in records(e,'_grist_Tables') if t['tableId']=='Autodiagnostic_DEV')
+    newmeta={r['colId']:r for r in records(e,'_grist_Tables_column') if r['parentId']==newref}
+    for r in source_cols:
+        if not r['isFormula'] and r['formula']:
+            update(e,'_grist_Tables_column',newmeta[r['colId']]['id'],recalcWhen=r['recalcWhen'],recalcDeps=objtypes.encode_object(r['recalcDeps']))
     groups=collections.defaultdict(list)
     for r in oldanswers:
         sid=oldmap.get(r['SITES_nomenclatures_UGECAM'])
@@ -140,6 +145,11 @@ def main(source,outdir):
     data=[]
     for s in site_rows:
         rs=groups[s['id']];item={'id':s['id'],'SITE':s['id'],'UGECAM':s['UGECAM'],'CONFLITS_MIGRATION':0}
+        if rs:
+            first=min(rs,key=lambda r:r.get('Cree_le') or float('inf'))
+            latest=max(rs,key=lambda r:r.get('Derniere_mise_a_jour') or 0)
+            for k,r in [('Cree_le',first),('Cree_par_contact',first),('Derniere_mise_a_jour',latest),('Derniere_mise_a_jour_contact',latest)]:
+                item[k]=objtypes.encode_object(r.get(k))
         for k in answer_keys(source_cols):
             vv={json.dumps(rs0[k],ensure_ascii=False,sort_keys=True):rs0[k] for rs0 in rs if not empty(rs0.get(k))}
             if len(vv)==1:item[k]=objtypes.encode_object(next(iter(vv.values())))
@@ -224,6 +234,13 @@ def main(source,outdir):
     newcols={r['colId']:r['id'] for r in records(e,'_grist_Tables_column') if r['parentId']==devref}
     update(e,'_grist_Tables_column',newcols['SITE'],visibleCol=next(r['id'] for r in records(e,'_grist_Tables_column') if r['colId']=='NOM' and r['parentId']==next(t['id'] for t in records(e,'_grist_Tables') if t['tableId']=='SITES')),displayCol=newcols['Site_nom'])
     update(e,'_grist_Tables_column',newcols['UGECAM'],displayCol=newcols['UGECAM_nom'],visibleCol=320)
+    tabrefs={t['tableId']:t['id'] for t in records(e,'_grist_Tables')}
+    allcols=records(e,'_grist_Tables_column')
+    for tableid,field in [('CONTACTS','SITE_PRINCIPAL'),('CONTACTS','SITES_RESP_AIRMES'),('ESMS','SITE'),('DEMANDES_ACCES','SITE_AIRMES'),('DEMANDES_ACCES','SITES_RESP_AIRMES'),('MIGRATION_SITES','SITE')]:
+        ref=next(r['id'] for r in allcols if r['parentId']==tabrefs[tableid] and r['colId']==field)
+        visible=next(r['id'] for r in allcols if r['parentId']==tabrefs['SITES'] and r['colId']=='NOM')
+        update(e,'_grist_Tables_column',ref,visibleCol=visible)
+        act(e,['SetDisplayFormula',tableid,None,ref,'$'+field+'.NOM'])
     export(e,source,str(out/'MOAD_2026_DEV_AIRMES_MIGRATION.grist'))
     report={'source_sha256':hashlib.sha256(pathlib.Path(source).read_bytes()).hexdigest(),'sites':len(site_rows),'esms_services':len(es),'contacts':len(records(e,'CONTACTS')),'autodiag_source':len(oldanswers),'autodiag_dev':len(data),'mapped_old_sites':len(oldmap),'issues':len(issues),'answer_conflicts':sum(r['CONFLITS_MIGRATION'] for r in data),'promotion':'BLOQUÉE — arbitrages et recette réelle Grist requis','details':issues}
     (out/'audit-migration.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
