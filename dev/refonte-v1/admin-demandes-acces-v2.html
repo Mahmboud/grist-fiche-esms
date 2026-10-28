@@ -1,0 +1,39 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<script src="https://mahmboud.github.io/grist-fiche-esms/dev/refonte-v1/moad-ref-config-v2.js"></script>
+<title>Demandes d'accès — refonte v1</title>
+<style>
+body{font:14px system-ui;background:#f6f8fb;margin:0;padding:18px;color:#172033}main{max-width:1100px;margin:auto}h1{margin:0 0 6px}.sub{color:#64748b;margin-bottom:14px}.c{background:#fff;border:1px solid #dfe6ee;border-radius:12px;padding:14px;margin:10px 0}.r{display:grid;grid-template-columns:1.2fr 1.5fr auto;gap:16px;align-items:center}.m{font-size:12px;color:#64748b;line-height:1.5}.scope{margin-top:5px;color:#334155}.ok,.no{padding:8px 10px;border:0;border-radius:8px;font-weight:700}.ok{background:#15803d;color:#fff}.no{color:#b42318}@media(max-width:750px){.r{grid-template-columns:1fr}}
+</style></head><body><main id="a">Chargement…</main><script>
+const a=document.getElementById('a'),CFG=window.MOAD_REFONTE_V1||{sites:[],fonctions:[]},S={r:[],c:[]};
+const rows=d=>Array.isArray(d)?d:Array.from({length:Math.max(0,...Object.values(d||{}).map(x=>Array.isArray(x)?x.length:0))},(_,i)=>Object.fromEntries(Object.entries(d||{}).map(([k,v])=>[k,Array.isArray(v)?v[i]:v])));
+const ft=async t=>rows(await grist.docApi.fetchTable(t));
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const L=v=>Array.isArray(v)?((v[0]==='L'||v[0]==='l')?v.slice(1):v):[];
+function refId(v){if(typeof v==='number')return v;if(Array.isArray(v)){for(let i=v.length-1;i>=0;i--){const n=Number(v[i]);if(Number.isFinite(n)&&n>0)return n}}const n=Number(v);return Number.isFinite(n)?n:0}
+function siteLabel(id){return CFG.sites.find(x=>Number(x.id)===Number(refId(id)))?.nom||''}
+function fonctionLabel(v){return CFG.fonctions.find(x=>Number(x.id)===Number(refId(v)))?.libelle||String(v??'')}
+function linkedContact(r){const cid=refId(r.CONTACT);if(cid){const x=S.c.find(c=>Number(c.id)===cid);if(x)return x}const byMail=S.c.filter(x=>String(x.EMAIL||'').toLowerCase()===String(r.EMAIL||'').toLowerCase());return byMail.length===1?byMail[0]:null}
+function profile(r){const p=String(r.PROFIL_ACCES||'SITE').toUpperCase();return ['SITE','SIEGE','DNGU'].includes(p)?p:'SITE'}
+function show(){
+ const z=S.r.filter(x=>x.STATUT==='À valider');
+ a.innerHTML='<h1>🔔 Demandes d’accès ('+z.length+')</h1><div class="sub">La validation met à jour CONTACTS et le périmètre de sites. Les ESMS/services sont déduits automatiquement des sites.</div>'+
+ (z.map(r=>{const linked=linkedContact(r),p=profile(r),extras=L(r.SITES_EN_RESPONSABILITE).map(siteLabel).filter(Boolean);let scope='';
+   if(p==='DNGU')scope='🌐 DNGU — périmètre national';
+   else if(p==='SIEGE')scope='🏢 Siège UGECAM — tous les sites de l’UGECAM selon habilitations';
+   else scope='<b>Site principal :</b> '+esc(siteLabel(r.SITE)||'Non renseigné')+(extras.length?'<br><b>Autres sites :</b> '+esc(extras.join(', ')):'');
+   return '<div class="c"><div class="r"><div><b>'+esc(r.PRENOM)+' '+esc(r.NOM)+'</b><div class="m">'+esc(r.EMAIL)+' · '+esc(fonctionLabel(r.FONCTION))+'<br>'+(linked?'🔄 Contact existant #'+linked.id:'➕ Nouveau contact')+'</div></div><div class="scope">'+scope+'</div><div><button class="ok" data-v="'+r.id+'">Valider</button> <button class="no" data-x="'+r.id+'">Refuser</button></div></div></div>';
+ }).join('')||'<div class="c">Aucune demande en attente.</div>');
+ document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>valider(Number(b.dataset.v)));document.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>refuser(Number(b.dataset.x)));
+}
+async function valider(id){
+ const r=S.r.find(x=>Number(x.id)===id),linked=linkedContact(r),p=profile(r),siege=p==='SIEGE',dngu=p==='DNGU',primary=p==='SITE'?refId(r.SITE):0,extras=p==='SITE'?L(r.SITES_EN_RESPONSABILITE).map(Number).filter(x=>x&&x!==primary):[];
+ const f={NOM:r.NOM,PRENOM:r.PRENOM,FONCTION:refId(r.FONCTION),EMAIL:String(r.EMAIL||'').toLowerCase(),UGECAM:refId(r.UGECAM),SITES_nomenclature_UGECAM:primary,SITES_EN_RESPONSABILITE:['L',...new Set(extras)],ESMS_Liste_UGECAM_:['L'],SIEGE:siege,DNGU:dngu,Referent_DUI:true,ACCES:true,ACCES_CONTACTS:false,ACCES_LISTE_ESMS:true,ACCES_ARBORESCENCE:false};
+ let cid;
+ if(linked){cid=linked.id;await grist.docApi.applyUserActions([['UpdateRecord','CONTACTS',cid,f]])}else{const q=await grist.docApi.applyUserActions([['AddRecord','CONTACTS',null,f]]);cid=Array.isArray(q)?q[0]:q}
+ await grist.docApi.applyUserActions([['UpdateRecord','DEMANDES_ACCES',id,{STATUT:'Validé',CONTACT:Number(cid)||0,DATE_VALIDATION:Date.now()/1000,VALIDE_PAR:'Administrateur Grist',NOM:'',PRENOM:'',FONCTION:0,ESMS:['L']}]]);await reload();
+}
+async function refuser(id){await grist.docApi.applyUserActions([['UpdateRecord','DEMANDES_ACCES',id,{STATUT:'Refusé',DATE_VALIDATION:Date.now()/1000,VALIDE_PAR:'Administrateur Grist'}]]);await reload()}
+async function reload(){[S.r,S.c]=await Promise.all([ft('DEMANDES_ACCES'),ft('CONTACTS')]);show()}
+(async()=>{try{await grist.ready({requiredAccess:'full'});await grist.docApi.fetchTable('ADMIN_OUTILS');await reload()}catch(e){a.textContent='Accès réservé aux administrateurs.'}})();
+</script></body></html>
