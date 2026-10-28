@@ -1,0 +1,57 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ADMIN — Nouveau référent</title>
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<style>
+:root{--bg:#f5f7fb;--line:#dfe7f1;--text:#0f172a;--muted:#64748b;--blue:#2563eb;--green:#15803d;--red:#b91c1c}
+*{box-sizing:border-box}body{margin:0;padding:18px;background:var(--bg);font:14px Inter,system-ui,sans-serif;color:var(--text)}
+main{max-width:980px;margin:auto}.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px}h1{margin:0 0 5px;font-size:23px}.lead{color:var(--muted);margin:0 0 20px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.f{display:flex;flex-direction:column;gap:5px}.wide{grid-column:1/-1}label{font-size:12px;font-weight:750}
+input,select{width:100%;padding:9px 10px;border:1px solid #cbd5e1;border-radius:9px;background:#fff}fieldset{border:1px solid var(--line);border-radius:11px;padding:10px 12px}.checks{max-height:220px;overflow:auto;display:grid;gap:4px}.checks label{font-weight:500}.checks input{width:auto}
+.info{padding:10px 12px;border-radius:9px;background:#eff6ff;color:#1d4ed8;font-size:12px}.btn{border:0;border-radius:9px;padding:10px 14px;font-weight:800;background:var(--blue);color:#fff;cursor:pointer}.ok{margin-top:12px;padding:10px;border-radius:9px;background:#f0fdf4;color:var(--green)}.err{margin-top:12px;padding:10px;border-radius:9px;background:#fef2f2;color:var(--red)}.hidden{display:none}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}}
+</style></head><body><div style="background:#fef3c7;color:#713f12;padding:8px;font:700 12px system-ui">DEV · Référence conservée</div><main><section class="card">
+<h1>➕ Inscrire un nouveau référent</h1>
+<p class="lead">Création directe dans CONTACTS. Réservé aux administrateurs/propriétaires.</p>
+<form id="form" class="grid" autocomplete="off">
+<div class="f"><label>Prénom *</label><input id="prenom" required></div>
+<div class="f"><label>Nom *</label><input id="nom" required></div>
+<div class="f"><label>Email *</label><input id="email" type="email" required></div>
+<div class="f"><label>Fonction *</label><select id="fonction" required><option value="">Choisir…</option></select></div>
+<div class="f"><label>UGECAM *</label><select id="ugecam" required><option value="">Choisir…</option></select></div>
+<div class="f"><label>Site *</label><select id="site" required disabled><option value="">Choisir…</option></select></div><div class="f wide"><label>Sites en responsabilité (facultatif)</label><div id="multiSites" class="checks">Choisissez d’abord une UGECAM.</div><div class="sub">Pour les directeurs ou responsables intervenant sur plusieurs sites. Le site principal reste obligatoire.</div></div>
+<div class="f wide"><label>Profil d'accès *</label><select id="profil" required>
+<option value="site">Référent de site</option>
+<option value="siege">Siège UGECAM</option>
+<option value="dngu">DNGU national</option>
+</select></div>
+<div class="f wide" id="esmsWrap"><fieldset><legend>ESMS associés</legend><div id="esms" class="checks">Choisissez d'abord une UGECAM puis un site.</div></fieldset></div>
+<div class="wide info">Le contact sera créé avec <b>Référent DUI = oui</b> et <b>Accès = oui</b>. Les droits restent déterminés par le profil Site / Siège / DNGU.</div>
+<div class="wide"><button class="btn" type="submit">Créer le référent</button><div id="msg"></div></div>
+</form>
+</section></main>
+<script>
+const S={fonctions:[],ugecam:[],sites:[],ref:[],contacts:[]};
+const rows=d=>Array.isArray(d)?d:Array.from({length:Math.max(0,...Object.values(d||{}).map(v=>Array.isArray(v)?v.length:0))},(_,i)=>Object.fromEntries(Object.entries(d).map(([k,v])=>[k,Array.isArray(v)?v[i]:v])));
+const ft=async t=>rows(await grist.docApi.fetchTable(t));
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const byId=(a,id)=>a.find(r=>Number(r.id)===Number(id));
+const fn=$=>document.getElementById($);
+function fillFonctions(){const a=S.fonctions.slice().sort((x,y)=>String(x.LIBELLE||'').localeCompare(String(y.LIBELLE||''),'fr'));fn('fonction').innerHTML='<option value="">Choisir…</option>'+a.map(r=>'<option value="'+r.id+'">'+esc(r.LIBELLE)+'</option>').join('')}
+function fillUgecam(){const a=S.ugecam.slice().sort((x,y)=>String(x.UGECAM||'').localeCompare(String(y.UGECAM||''),'fr'));fn('ugecam').innerHTML='<option value="">Choisir…</option>'+a.map(r=>'<option value="'+r.id+'">'+esc(r.UGECAM)+'</option>').join('')}
+function fillSites(){const uid=Number(fn('ugecam').value);const a=S.sites.filter(r=>Number(r.UGECAM)===uid).sort((x,y)=>String(x.SITES_nomenclature_UGECAM||'').localeCompare(String(y.SITES_nomenclature_UGECAM||''),'fr'));fn('site').disabled=!uid;fn('site').innerHTML='<option value="">Choisir…</option>'+a.map(r=>'<option value="'+r.id+'">'+esc(r.SITES_nomenclature_UGECAM)+'</option>').join('');fn('multiSites').innerHTML=a.length?a.map(r=>'<label><input name="multiSite" type="checkbox" value="'+r.id+'"> '+esc(r.SITES_nomenclature_UGECAM)+'</label>').join(''):'Aucun site.';fn('esms').textContent='Choisissez un site.'}
+function renderEsms(){const sid=Number(fn('site').value),uid=Number(fn('ugecam').value),profile=fn('profil').value,global=profile!=='site';fn('esmsWrap').classList.toggle('hidden',global);if(global)return;const a=S.ref.filter(r=>Number(r.UGECAM_ID)===uid&&Number(r.SITE_ID)===sid).sort((x,y)=>String(x.ESMS_nom||'').localeCompare(String(y.ESMS_nom||''),'fr'));fn('esms').innerHTML=a.length?a.map(r=>'<label><input name="esms" type="checkbox" value="'+r.ESMS_ID+'"> '+esc(r.ESMS_nom)+'</label>').join(''):'Aucun ESMS associé à ce site.'}
+fn('ugecam').onchange=()=>{fillSites();renderEsms()};
+fn('site').onchange=renderEsms;fn('profil').onchange=renderEsms;
+fn('form').onsubmit=async e=>{e.preventDefault();const msg=fn('msg');msg.className='';msg.textContent='';try{
+ const email=fn('email').value.trim().toLowerCase();
+ if(S.contacts.some(c=>String(c.EMAIL||'').trim().toLowerCase()===email))throw new Error('Un contact existe déjà avec cet email.');
+ const profile=fn('profil').value,siteId=Number(fn('site').value),funcId=Number(fn('fonction').value),ids=[...document.querySelectorAll('[name=esms]:checked')].map(x=>Number(x.value));const multiSiteIds=[...document.querySelectorAll('[name=multiSite]:checked')].map(x=>Number(x.value));if(siteId&&!multiSiteIds.includes(siteId))multiSiteIds.unshift(siteId);
+ if(profile==='site'&&!ids.length)throw new Error('Sélectionnez au moins un ESMS pour un référent de site.');
+ const data={NOM:fn('nom').value.trim().toUpperCase(),PRENOM:fn('prenom').value.trim(),EMAIL:email,FONCTION:funcId,UGECAM:Number(fn('ugecam').value),
+ SITES_nomenclature_UGECAM:siteId,SITES_EN_RESPONSABILITE:['L',...multiSiteIds],ESMS_Liste_UGECAM_:profile==='site'?['L',...ids]:['L'],
+ Referent_DUI:true,ACCES:true,ACCES_CONTACTS:false,ACCES_LISTE_ESMS:true,ACCES_ARBORESCENCE:true,SIEGE:profile==='siege',DNGU:profile==='dngu'};
+ await grist.docApi.applyUserActions([['AddRecord','CONTACTS',null,data]]);
+ S.contacts=await ft('CONTACTS');msg.className='ok';msg.textContent='Référent créé avec succès.';fn('form').reset();fillFonctions();fillUgecam();fn('site').disabled=true;fn('site').innerHTML='<option value="">Choisir…</option>';renderEsms();
+}catch(err){console.error(err);msg.className='err';msg.textContent=err?.message||String(err)}};
+(async()=>{try{await grist.ready({requiredAccess:'full'});[S.fonctions,S.ugecam,S.sites,S.ref,S.contacts]=await Promise.all([ft('REFERENTIEL_FONCTIONS'),ft('UGECAM'),ft('SITES_nomenclature_UGECAM'),ft('REFERENTIEL_INSCRIPTION_ESMS'),ft('CONTACTS')]);fillFonctions();fillUgecam();}catch(e){fn('msg').className='err';fn('msg').textContent='Accès administrateur requis : '+(e?.message||String(e))}})();
+</script></body></html>

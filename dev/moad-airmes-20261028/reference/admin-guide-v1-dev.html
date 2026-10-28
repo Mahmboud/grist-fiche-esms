@@ -1,0 +1,41 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Administration MOAD — Processus IA</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--line:#dfe7f1;--text:#0f172a;--muted:#64748b;--blue:#2563eb;--blue2:#eff6ff;--green:#15803d;--green2:#f0fdf4;--amber:#92400e;--amber2:#fffbeb}
+*{box-sizing:border-box}body{margin:0;padding:18px;background:var(--bg);color:var(--text);font:14px Inter,system-ui,sans-serif}main{max-width:1180px;margin:auto}
+.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:16px}.hero{padding:22px;margin-bottom:14px}.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--blue);font-weight:900}.hero h1{margin:5px 0 8px;font-size:26px}.hero p{margin:0;color:var(--muted);line-height:1.6}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.card{padding:18px}.card.full{grid-column:1/-1}.card h2{font-size:17px;margin:0 0 10px}.card p,.card li{line-height:1.55;color:#334155}.steps{counter-reset:s;display:grid;gap:10px;margin-top:12px}.step{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start}.step:before{counter-increment:s;content:counter(s);width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--blue);color:#fff;font-weight:900}.step b{display:block;margin-bottom:2px}.note{padding:12px;border-radius:10px;background:var(--blue2);color:#1d4ed8;line-height:1.5}.warn{padding:12px;border-radius:10px;background:var(--amber2);color:var(--amber);line-height:1.5}.good{padding:12px;border-radius:10px;background:var(--green2);color:var(--green);line-height:1.5}.flow{display:grid;gap:8px;margin-top:10px}.flow div{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}.small{font-size:12px;color:var(--muted)}@media(max-width:850px){.grid{grid-template-columns:1fr}.card.full{grid-column:auto}}
+</style></head><body><div style="background:#fef3c7;color:#713f12;padding:8px;font:700 12px system-ui">DEV · Référence conservée</div><main>
+<section class="hero"><div class="eyebrow">Administration MOAD</div><h1>Travailler le projet Grist avec une IA sans exposer de données individuelles</h1>
+<p>Le principe est simple : <b>toutes les données individuelles sont centralisées dans CONTACTS</b>. Les autres tables doivent référencer CONTACTS plutôt que recopier des noms, prénoms ou emails. Quand CONTACTS est épurée dans une copie de travail, les données individuelles disparaissent des vues liées.</p></section>
+
+<div class="grid">
+<section class="card full"><h2>🧭 Procédure pour démarrer une nouvelle version de travail</h2>
+<div class="steps">
+<div class="step"><div><b>Dupliquer la version Grist de production</b><span>Dans Grist, créez une copie du document et renommez-la avec le préfixe <code>VERSION TRAVAIL_</code>.</span></div></div>
+<div class="step"><div><b>Épurer les données individuelles dans la copie</b><span>Dans cette copie, ouvrez l’onglet <b>💾 Sauvegarde & restauration</b>, sauvegardez CONTACTS si nécessaire, puis lancez l’épuration.</span></div></div>
+<div class="step"><div><b>Vérifier la copie avant de la transmettre</b><span>Téléchargez la version de travail et vérifiez manuellement que noms, prénoms, emails et autres données individuelles ne figurent plus dans le document.</span></div></div>
+<div class="step"><div><b>Travailler uniquement sur cette version avec l’IA</b><span>Les modifications de structure, ACL, widgets, formulaires et ergonomie sont réalisées sur la copie épurée.</span></div></div>
+</div>
+</section>
+
+<section class="card"><h2>💾 Sauvegarde</h2><p>Avant toute épuration, conservez toujours :</p><ul><li>une sauvegarde complète <b>.grist</b> ;</li><li>un export intégral de <b>CONTACTS</b>.</li></ul><div class="note">Le fichier de production reste la référence métier. La copie IA n’est jamais la seule copie disponible.</div></section>
+
+<section class="card"><h2>♻️ Restauration</h2><p>La restauration de CONTACTS sert principalement à réinjecter les identités dans une copie privée de test. Pour une vraie mise en production, il faut aussi tenir compte des données métier qui ont évolué pendant le développement : Autodiagnostic, ESMS, référentiels, etc.</p><div class="warn"><b>Ne pas faire de l’ancienne VERSION TRAVAIL la nouvelle production sans resynchroniser les données métier récentes.</b></div></section>
+
+<section class="card full"><h2>🚀 Passage en production recommandé</h2>
+<p>Pour éviter des exports/imports table par table, je recommande un <b>gel très court uniquement au moment du basculement</b>, pas pendant toute la période de développement.</p>
+<div class="flow">
+<div><b>1. Production continue normalement</b><br><span class="small">Pendant que la VERSION TRAVAIL évolue avec l’IA, les professionnels continuent de saisir dans la production.</span></div>
+<div><b>2. Au moment du déploiement : courte fenêtre de gel</b><br><span class="small">Prévenir les utilisateurs et suspendre les modifications pendant quelques minutes afin d’obtenir un état cohérent.</span></div>
+<div><b>3. Faire immédiatement une nouvelle duplication de la production</b><br><span class="small">Cette copie contient alors les dernières données CONTACTS, Autodiagnostic, ESMS et tous les autres enregistrements à jour.</span></div>
+<div><b>4. Appliquer les évolutions du modèle sur cette duplication fraîche</b><br><span class="small">L’objectif est de migrer la structure et les widgets, et non de recopier manuellement toutes les données métier.</span></div>
+<div><b>5. Tester puis basculer</b><br><span class="small">Contrôler les ACL, les formulaires, quelques contacts et quelques Autodiagnostics avant de réouvrir les accès.</span></div>
+</div>
+<div class="good" style="margin-top:12px"><b>Pourquoi cette méthode ?</b> Elle évite d’avoir à réimporter séparément CONTACTS, Autodiagnostic, ESMS et les autres tables. La duplication fraîche de production apporte naturellement toutes les données à jour ; seule la couche modèle doit être migrée.</div>
+</section>
+
+<section class="card"><h2>⏱ Faut-il interrompre l’accès ?</h2><p><b>Pas pendant le développement.</b> Une interruption courte est utile seulement lors du basculement final, pour éviter qu’un utilisateur modifie la production entre la dernière copie et l’ouverture de la nouvelle version.</p></section>
+<section class="card"><h2>🧩 Ce qu’il faudra automatiser ensuite</h2><p>La prochaine amélioration logique est un mécanisme de <b>migration du modèle</b> : appliquer à une duplication fraîche de production les évolutions de structure réalisées dans VERSION TRAVAIL, sans transporter les données individuelles vers l’IA.</p></section>
+</div>
+</main></body></html>

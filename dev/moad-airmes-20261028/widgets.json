@@ -1,0 +1,36 @@
+{
+  "baselineBase": "https://mahmboud.github.io/grist-fiche-esms/dev/moad-airmes-20261028/reference/",
+  "targetBase": "https://mahmboud.github.io/grist-fiche-esms/dev/moad-airmes-20261028/target/",
+  "baseline": {
+    "autodiagnostic-questionnaire-v4.html": "autodiagnostic-questionnaire-v5-dev.html",
+    "admin-guide-v1.html": "admin-guide-v1-dev.html",
+    "moad-ref-config.js": "moad-ref-config-dev.js",
+    "acces-moad-v1.html": "acces-moad-v2-dev.html",
+    "v5.html": "v6-dev.html",
+    "admin-exports-excel-v1.html": "admin-exports-excel-v1-dev.html",
+    "autodiagnostic-synthese-v3.html": "autodiagnostic-synthese-v4-dev.html",
+    "airmes-arborescence-v1.html": "airmes-arborescence-v1-dev.html",
+    "admin-nouveau-referent-v1.html": "admin-nouveau-referent-v1-dev.html",
+    "admin-demandes-acces-v1.html": "admin-demandes-acces-v1-dev.html",
+    "contacts-annuaire-v2.html": "contacts-annuaire-v2-dev.html",
+    "autodiagnostic-historique-v1.html": "autodiagnostic-historique-v1-dev.html",
+    "airmes-synthese-v1.html": "airmes-synthese-v1-dev.html",
+    "admin-maintenance-v1.html": "admin-maintenance-v1-dev.html"
+  },
+  "target": {
+    "autodiagnostic-questionnaire-v4.html": "autodiagnostic-questionnaire-v5-dev.html",
+    "admin-guide-v1.html": "admin-guide-v1-dev.html",
+    "moad-ref-config.js": "moad-ref-config-dev.js",
+    "acces-moad-v1.html": "acces-moad-v2-dev.html",
+    "v5.html": "v6-dev.html",
+    "admin-exports-excel-v1.html": "admin-exports-excel-v1-dev.html",
+    "autodiagnostic-synthese-v3.html": "autodiagnostic-synthese-v4-dev.html",
+    "airmes-arborescence-v1.html": "airmes-arborescence-v1-dev.html",
+    "admin-nouveau-referent-v1.html": "admin-nouveau-referent-v1-dev.html",
+    "admin-demandes-acces-v1.html": "admin-demandes-acces-v1-dev.html",
+    "contacts-annuaire-v2.html": "contacts-annuaire-v2-dev.html",
+    "autodiagnostic-historique-v1.html": "autodiagnostic-historique-v1-dev.html",
+    "airmes-synthese-v1.html": "airmes-synthese-v1-dev.html",
+    "admin-maintenance-v1.html": "admin-maintenance-v1-dev.html"
+  }
+}

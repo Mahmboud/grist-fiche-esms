@@ -1,0 +1,5 @@
+*.grist
+__pycache__/
+*.pyc
+test-fixtures*.json
+deliverables/
