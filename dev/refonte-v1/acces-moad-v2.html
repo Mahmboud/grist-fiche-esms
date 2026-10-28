@@ -1,0 +1,68 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<script src="https://mahmboud.github.io/grist-fiche-esms/dev/refonte-v1/moad-ref-config-v2.js"></script>
+<title>Accès MOAD — refonte v1</title>
+<style>
+body{font:14px system-ui;background:#f5f7fb;margin:0;padding:20px;color:#172033}main{max-width:900px;margin:auto;background:#fff;border:1px solid #dde5ee;border-radius:16px;padding:22px}
+h1{margin:0 0 6px}p{color:#64748b}.g{display:grid;grid-template-columns:1fr 1fr;gap:12px}.f{display:flex;flex-direction:column;gap:5px}.wide{grid-column:1/-1}
+input,select{padding:9px;border:1px solid #ccd5e0;border-radius:8px}.checks{border:1px solid #dde5ee;border-radius:9px;padding:8px;max-height:220px;overflow:auto}.checks label{display:inline-block;margin:4px 10px 4px 0}
+.hidden{display:none!important}.info{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:9px;padding:10px;font-size:12px}.found{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:9px;padding:12px}
+button{background:#2563eb;color:#fff;border:0;border-radius:9px;padding:10px 14px;font-weight:700}.state{padding:16px;border-radius:12px;background:#fffbeb}.ok{background:#f0fdf4}.sub{font-size:12px;color:#64748b}
+.privacy{grid-column:1/-1;border:1px solid #cbd5e1;border-radius:12px;background:#f8fafc;padding:12px 14px;color:#334155;font-size:12px;line-height:1.55}.privacy b{color:#0f172a}.privacyFoot{margin-top:9px;padding-top:8px;border-top:1px solid #e2e8f0}.privacy a{color:#2563eb}
+@media(max-width:650px){.g{grid-template-columns:1fr}.wide{grid-column:auto}}
+</style></head><body><main id="a">Chargement…</main><script>
+const a=document.getElementById('a'),CFG=window.MOAD_REFONTE_V1||{sites:[],fonctions:[]},S={r:[],d:[],c:[]};
+const rows=d=>Array.isArray(d)?d:Array.from({length:Math.max(0,...Object.values(d||{}).map(x=>Array.isArray(x)?x.length:0))},(_,i)=>Object.fromEntries(Object.entries(d||{}).map(([k,v])=>[k,Array.isArray(v)?v[i]:v])));
+const ft=async t=>{try{return rows(await grist.docApi.fetchTable(t))}catch(e){console.warn(t,e);return[]}};
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const L=v=>Array.isArray(v)?((v[0]==='L'||v[0]==='l')?v.slice(1):v):[];
+const ref=v=>{if(typeof v==='number')return v;if(Array.isArray(v)){for(let i=v.length-1;i>=0;i--){const n=Number(v[i]);if(Number.isFinite(n)&&n>0)return n}}const n=Number(v);return Number.isFinite(n)?n:0};
+function currentContact(){return S.c.length===1?S.c[0]:null}
+function siteName(id){return CFG.sites.find(s=>Number(s.id)===Number(id))?.nom||''}
+function profileOf(c){if(c?.DNGU===true||c?.DNGU===1)return'DNGU';if(c?.SIEGE===true||c?.SIEGE===1)return'SIEGE';return'SITE'}
+function show(){
+  if(S.d.length){a.innerHTML='<h1>✅ Accès actif</h1><div class="state ok">Votre accès est validé. Vous disposez actuellement de '+S.d.length+' site(s) d’autodiagnostic dans votre périmètre.</div>';return}
+  const pending=S.r.filter(x=>x.STATUT==='À valider').sort((x,y)=>Number(y.id)-Number(x.id));
+  if(pending.length){const r=pending[0];a.innerHTML='<h1>Votre demande d’accès</h1><div class="state"><b>À valider</b><br><br>'+esc(r.PRENOM)+' '+esc(r.NOM)+'<br>'+esc(r.EMAIL)+'<br><br>Votre demande est en attente de validation par un administrateur MOAD.</div>';return}
+  form();
+}
+function form(){
+ const c=currentContact(),funcs=CFG.fonctions.slice().sort((x,y)=>x.libelle.localeCompare(y.libelle,'fr'));
+ const ugMap=new Map(CFG.sites.map(s=>[Number(s.ugecam_id),s.ugecam]));ugMap.set(11,'DNGU');const ugs=[...ugMap.entries()].sort((a,b)=>a[1].localeCompare(b[1],'fr'));
+ const intro=c?'<div class="wide found"><b>✅ Nous avons retrouvé votre fiche dans CONTACTS.</b><br>Vérifiez les informations préremplies. Après validation, votre fiche existante sera mise à jour.</div>':'<div class="wide info"><b>Nouvel utilisateur.</b> Après validation, une nouvelle fiche CONTACTS sera créée.</div>';
+ a.innerHTML='<h1>Bienvenue dans l’Autodiagnostic MOAD</h1><p>Vérifiez votre rattachement professionnel. L’adresse utilisée est celle de votre compte Grist.</p><form id="f" class="g" autocomplete="off">'+intro+
+ '<div class="f"><label>Prénom *</label><input id="p" required></div><div class="f"><label>Nom *</label><input id="n" required></div>'+
+ '<div class="f"><label>Fonction *</label><select id="fn" required><option value="">Choisir…</option>'+funcs.map(x=>'<option value="'+x.id+'">'+esc(x.libelle)+'</option>').join('')+'</select></div>'+
+ '<div class="f"><label>Profil de rattachement *</label><select id="profil"><option value="SITE">Site / établissement</option><option value="SIEGE">Siège UGECAM</option><option value="DNGU">DNGU</option></select></div>'+
+ '<div class="f"><label>UGECAM *</label><select id="u" required><option value="">Choisir…</option>'+ugs.map(x=>'<option value="'+x[0]+'">'+esc(x[1])+'</option>').join('')+'</select></div>'+
+ '<div class="f" id="siteWrap"><label>Site principal *</label><select id="s" disabled><option value="">Choisir…</option></select></div>'+
+ '<div class="f wide" id="multiWrap"><label>Autres sites en responsabilité</label><div id="ms" class="checks">Choisissez une UGECAM.</div><div class="sub">Le périmètre Autodiag comprend automatiquement le site principal et les autres sites sélectionnés. Les ESMS/services sont déduits des sites : aucune sélection ESMS séparée n’est nécessaire.</div></div>'+
+ '<div class="wide info hidden" id="profileInfo"></div>'+
+ '<div class="privacy"><b>Information sur le traitement de vos données professionnelles.</b> <b>Finalités :</b> gérer votre inscription, votre rattachement, vos habilitations et l’accès à l’Autodiagnostic MOAD. <b>Données traitées :</b> nom, prénom, mail professionnel, fonction, UGECAM, site(s) et habilitations. <b>Vos droits :</b> vous pouvez demander l’accès ou la rectification de vos données et contacter le DPO de votre organisme. <b>Confidentialité et sécurité :</b> les données sont accessibles uniquement aux personnes habilitées selon leur périmètre.<div class="privacyFoot">Contact : <a href="mailto:moad.dui.ug-bfc@ugecam.assurance-maladie.fr">moad.dui.ug-bfc@ugecam.assurance-maladie.fr</a>. Cette validation porte sur l’exactitude de vos informations professionnelles et ne constitue pas un consentement.</div></div>'+
+ '<label class="wide"><input id="confirm" type="checkbox" required> Je confirme l’exactitude de ces informations professionnelles.</label>'+
+ '<div class="wide"><button>Soumettre à validation</button> <span id="msg"></span></div></form>';
+ const p=document.getElementById('p'),n=document.getElementById('n'),fn=document.getElementById('fn'),profil=document.getElementById('profil'),u=document.getElementById('u'),s=document.getElementById('s'),ms=document.getElementById('ms'),siteWrap=document.getElementById('siteWrap'),multiWrap=document.getElementById('multiWrap'),info=document.getElementById('profileInfo'),msg=document.getElementById('msg');
+ function fillSites(selected=[]){
+   const uid=Number(u.value),list=CFG.sites.filter(x=>Number(x.ugecam_id)===uid).sort((a,b)=>a.nom.localeCompare(b.nom,'fr')),sel=new Set(selected.map(Number));
+   s.disabled=!uid;s.innerHTML='<option value="">Choisir…</option>'+list.map(x=>'<option value="'+x.id+'">'+esc(x.nom)+'</option>').join('');
+   ms.innerHTML=list.length?list.map(x=>'<label><input name="ms" type="checkbox" value="'+x.id+'" '+(sel.has(Number(x.id))?'checked':'')+'> '+esc(x.nom)+'</label>').join(''):'Aucun site.';
+ }
+ function applyProfile(){
+   const pr=profil.value,isSite=pr==='SITE',isDngu=pr==='DNGU';siteWrap.classList.toggle('hidden',!isSite);multiWrap.classList.toggle('hidden',!isSite);s.required=isSite;info.classList.toggle('hidden',isSite);
+   if(isDngu){u.value='11';u.disabled=true;info.textContent='Profil DNGU : après validation, accès national selon les habilitations attribuées.'}
+   else{u.disabled=false;if(pr==='SIEGE')info.textContent='Profil Siège : après validation, accès aux sites de votre UGECAM selon les habilitations attribuées.'}
+ }
+ u.onchange=()=>fillSites();profil.onchange=()=>{applyProfile();if(profil.value!=='DNGU'&&Number(u.value)===11)u.value='';fillSites()};
+ if(c){
+   p.value=c.PRENOM||'';n.value=c.NOM||'';fn.value=ref(c.FONCTION)||'';profil.value=profileOf(c);u.value=ref(c.UGECAM)||'';
+   applyProfile();fillSites(L(c.SITES_EN_RESPONSABILITE));s.value=ref(c.SITES_nomenclature_UGECAM)||'';
+ }else applyProfile();
+ document.getElementById('f').onsubmit=async e=>{e.preventDefault();msg.textContent='';try{
+   const pr=profil.value,primary=pr==='SITE'?Number(s.value):0;if(pr==='SITE'&&!primary)throw new Error('Sélectionnez un site principal.');
+   const extras=pr==='SITE'?[...document.querySelectorAll('[name=ms]:checked')].map(x=>Number(x.value)).filter(x=>x&&x!==primary):[];
+   const rec={NOM:n.value.trim().toUpperCase(),PRENOM:p.value.trim(),FONCTION:Number(fn.value),UGECAM:Number(u.value),SITE:primary,SITES_EN_RESPONSABILITE:['L',...extras],ESMS:['L'],PROFIL_ACCES:pr,CONFIRMATION:true,STATUT:'À valider',DATE_DEMANDE:Date.now()/1000,CONTACT:c?Number(c.id):0};
+   await grist.docApi.applyUserActions([['AddRecord','DEMANDES_ACCES',null,rec]]);S.r=await ft('DEMANDES_ACCES');show();
+ }catch(err){console.error(err);msg.textContent=' '+(err?.message||String(err))}};
+}
+(async()=>{try{await grist.ready({requiredAccess:'full'});[S.d,S.r,S.c]=await Promise.all([ft('Autodiagnostic'),ft('DEMANDES_ACCES'),ft('CONTACTS')]);show()}catch(e){console.error(e);a.textContent='Erreur de chargement : '+(e?.message||e)}})();
+</script></body></html>
