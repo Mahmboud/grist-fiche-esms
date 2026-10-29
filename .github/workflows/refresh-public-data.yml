@@ -1,0 +1,63 @@
+name: Prepare public UGECAM sources (DEV)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/public-data/**'
+      - '.github/workflows/refresh-public-data.yml'
+  schedule:
+    - cron: '35 5 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: public-sources-dev
+  cancel-in-progress: false
+jobs:
+  collect:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: tools/public-data/requirements.txt
+      - name: Install collection readers
+        run: python -m pip install -r tools/public-data/requirements.txt
+      - uses: actions/cache@v4
+        with:
+          path: .public-data-cache
+          key: public-sources-v1-${{ github.run_id }}
+          restore-keys: public-sources-v1-
+      - name: Collect and validate public files
+        run: python tools/public-data/collect.py --cache .public-data-cache --output dev/public-data-v1
+      - name: Verify immutable production files
+        run: python tools/check_prod_immutable.py
+      - name: Publish public snapshots only
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add dev/public-data-v1
+          if ! git diff --cached --quiet; then
+            git commit -m 'Refresh public UGECAM source snapshot (DEV)'
+            git push origin HEAD:main
+          fi
+      - uses: actions/configure-pages@v5
+      - name: Prepare static Pages files
+        run: |
+          mkdir /tmp/moad-pages
+          git archive HEAD | tar -x -C /tmp/moad-pages
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: /tmp/moad-pages
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

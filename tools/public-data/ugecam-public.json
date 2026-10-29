@@ -1,0 +1,54 @@
+[
+  {
+    "nom": "UGECAM BFC",
+    "finess_juridique": "210010294"
+  },
+  {
+    "nom": "UGECAM OCCITANIE",
+    "finess_juridique": "340015171"
+  },
+  {
+    "nom": "UGECAM AQUITAINE",
+    "finess_juridique": "330056540"
+  },
+  {
+    "nom": "UGECAM HAUTS DE FRANCE",
+    "finess_juridique": "590039863"
+  },
+  {
+    "nom": "UGECAM BRPL",
+    "finess_juridique": "440042844"
+  },
+  {
+    "nom": "UGECAM CENTRE-ALPC",
+    "finess_juridique": "450018106"
+  },
+  {
+    "nom": "UGECAM CENTRE-ALPC",
+    "finess_juridique": "870015336"
+  },
+  {
+    "nom": "UGECAM RHONE ALPES",
+    "finess_juridique": "690029723"
+  },
+  {
+    "nom": "UGECAM NORD-EST",
+    "finess_juridique": "540019726"
+  },
+  {
+    "nom": "UGECAM NORMANDIE",
+    "finess_juridique": "760025734"
+  },
+  {
+    "nom": "UGECAM ILE DE FRANCE",
+    "finess_juridique": "930027347"
+  },
+  {
+    "nom": "UGECAM PACA-C",
+    "finess_juridique": "130037815"
+  },
+  {
+    "nom": "UGECAM Alsace",
+    "finess_juridique": "670013754"
+  }
+]
