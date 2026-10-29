@@ -1,0 +1,15 @@
+// Uses Grist's actual TypeScript compiler, RecordView and permission parser.
+const fs=require('fs'),assert=require('assert');const f=JSON.parse(fs.readFileSync(process.argv[2]));const G=require(process.argv[3]);const checks=[];
+function record(r){return new G.RecordView(['TableData','Test',[r.id||1],Object.fromEntries(Object.entries(r).filter(([k])=>k!=='id').map(([k,v])=>[k,[Array.isArray(v)&&v[0]!=='L'?['L',...v]:v]]))],0)}
+function user(opts={}){return {Access:opts.role||'editors',IsLoggedIn:opts.logged!==false,Email:'demande-test@example.invalid',droits_supp:record({id:1,ACCES:true,ACCES_LISTE_ESMS:true,ACCES_ARBORESCENCE:true,SIEGE:false,DNGU:false,UGECAM:1,SITE_PRINCIPAL:4,SITES_RESP_AIRMES:[],AUTODIAGS_AUTORISES:[1],...opts.rights}),demande_acces:record({STATUT:opts.valid===false?'À valider':'Validé'})}}
+function perms(acl,table,u,r,n=r,column='*'){
+ const ids=acl.resources.filter(x=>x.tableId===table&&x.colIds===column).map(x=>x.id);assert(ids.length,'Ressource manquante '+table+':'+column);const rules=acl.rules.filter(x=>ids.includes(x.resource)).sort((a,b)=>a.rulePos-b.rulePos),out={};
+ for(const rule of rules){const matches=!rule.aclFormula||G.compilePredicateFormula(typeof rule.aclFormulaParsed==='string'?JSON.parse(rule.aclFormulaParsed):rule.aclFormulaParsed)({user:u,rec:record(r),newRec:record(n)});if(matches)for(const [k,v] of Object.entries(G.parsePermissions(rule.permissionsText)))if(v&&!out[k])out[k]=v}
+ return out;
+}
+const req={id:2,EMAIL:'demande-test@example.invalid',STATUT:'À valider',CONTACT:0,DATE_VALIDATION:0,VALIDE_PAR:'',CONFIRMATION:true,PROFIL_ACCES:'SITE'};
+assert.equal(perms(f.acl,'DEMANDES_ACCES',user({valid:false}),req).create,'allow');assert.equal(perms(f.acl,'DEMANDES_ACCES',user(),req).create,'deny');checks.push('Création permise avant validation, refusée côté serveur pour un utilisateur déjà validé');
+assert.equal(perms(f.acl,'DEMANDES_ACCES',user(),{...req,STATUT:'Validé',CONTACT:1}).read,'allow');assert.equal(perms(f.acl,'DEMANDES_ACCES',user(),{...req,EMAIL:'autre@example.invalid'}).read,'deny');checks.push('Le compte validé peut lire sa confirmation mais pas la demande d’autrui');
+for(const t of ['GristHidden_SITES','GristHidden_UGECAM','GristHidden_PROFIL_SESSION','ADMIN_OUTILS'])assert.equal(perms(f.acl,t,user(),{}).read,'deny');checks.push('Tables techniques et administration toujours réservées au propriétaire');
+const mine={SITE:4,UGECAM:1},other={SITE:33,UGECAM:2};assert.equal(perms(f.acl,'Autodiagnostic',user(),mine).read,'allow');assert.equal(perms(f.acl,'Autodiagnostic',user(),other).read,'deny');assert.equal(perms(f.acl,'Autodiagnostic',user({rights:{SIEGE:true}}),mine).read,'allow');assert.equal(perms(f.acl,'Autodiagnostic',user({rights:{SIEGE:true}}),other).read,'deny');assert.equal(perms(f.acl,'Autodiagnostic',user({rights:{DNGU:true}}),other).read,'allow');checks.push('Le texte d’accueil correspond aux périmètres Autodiag réels : site, siège UGECAM, DNGU nationale');
+console.log(JSON.stringify({passed:checks.length,checks},null,2));
