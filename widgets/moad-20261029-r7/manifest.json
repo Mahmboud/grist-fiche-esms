@@ -1,0 +1,31 @@
+{
+  "files": {
+    "v6-dev5.html": "sites-esms.html",
+    "airmes-arborescence-v4-dev.html": "arborescence-airmes.html",
+    "contacts-annuaire-v2-dev.html": "contacts.html",
+    "autodiagnostic-synthese-v4-dev.html": "autodiagnostic-synthese.html",
+    "autodiagnostic-questionnaire-v5-dev.html": "autodiagnostic-questionnaire.html",
+    "autodiagnostic-historique-v1-dev.html": "autodiagnostic-historique.html",
+    "airmes-synthese-v1-dev.html": "airmes-synthese.html",
+    "acces-moad-v3-dev.html": "mon-acces.html",
+    "admin-demandes-acces-v1-dev.html": "administration-demandes.html",
+    "admin-maintenance-v2-dev.html": "administration-sauvegardes.html",
+    "admin-nouveau-referent-v3-dev.html": "administration-referent.html",
+    "admin-guide-v1-dev.html": "administration-guide.html",
+    "admin-exports-excel-v2-dev.html": "administration-exports.html",
+    "liste-finess-v2-dev.html": "liste-finess.html",
+    "moad-ref-config-dev.js": "moad-ref-config.js",
+    "public-sync-v1-dev.js": "public-sync.js",
+    "public-data-ui-v1-dev.js": "public-data-ui.js",
+    "finess-ui-v2-dev.js": "finess.js",
+    "finess-core-v1-dev.js": "identifiants.js"
+  },
+  "tables": {
+    "SITES": "GristHidden_SITES",
+    "UGECAM": "GristHidden_UGECAM",
+    "PROFIL_SESSION": "GristHidden_PROFIL_SESSION",
+    "Autodiagnostic_DEV": "Autodiagnostic",
+    "Autodiagnostic_Historique_DEV": "Autodiagnostic_Historique",
+    "ARBORESCENCE_AIRMES_DEV": "ARBORESCENCE_AIRMES"
+  }
+}
