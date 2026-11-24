@@ -10,7 +10,7 @@ new="""if(!S.u.length||!S.s.length){const backup=(await grist.getOptions?.())?.i
 assert old in s;s=s.replace(old,new);p.write_text(s)
 shutil.copy2(src,dst);c=sqlite3.connect(dst);c.row_factory=sqlite3.Row
 assert c.execute('select permissionsText from _grist_ACLRules where id=274').fetchone()[0]=='+CR'
-c.execute("update _grist_ACLRules set permissionsText='+C' where id=274")
+c.execute("update _grist_ACLRules set permissionsText='+C', aclFormulaParsed=? where id=274",(json.dumps(parse_predicate_formula(c.execute("select aclFormula from _grist_ACLRules where id=274").fetchone()[0]),ensure_ascii=False),))
 formula="user.Access in [OWNER, EDITOR, VIEWER] and user.Email != '' and rec.id == 1 and rec.STATUT == 'Référentiel inscription'"
 c.execute('update _grist_ACLRules set aclFormula=?,aclFormulaParsed=?,rulePos=? where id=291',(formula,json.dumps(parse_predicate_formula(formula),ensure_ascii=False),223.7))
 for table,pos in [('_grist_Pages','pagePos'),('_grist_TabBar','tabPos')]:c.execute(f'update {table} set {pos}=(select min({pos})-1 from {table}) where viewRef=20')
