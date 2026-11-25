@@ -138,16 +138,15 @@ class Collector:
  def fact(self,source,code,data,summary,info):
   self.facts.append(dict(source=source,FINESS=code,data=data,summary=summary,sourceDate=info.get('sourceDate',''),sourceUrl=info.get('sourceUrl','')))
  def has_essms(self):
-  p,info=self.resource('has-essms',lambda r:r['title']=='open_data_par_essms.xlsx');targets={r['FINESS'] for r in self.structures};groups=collections.defaultdict(list)
-  w=openpyxl.load_workbook(p.open('rb'),read_only=True,data_only=True);it=w.active.values;headers=next(it)
-  if not {'finess_geo','eval_date_fin','eval_code','indice_qualite'}.issubset(headers):raise ValueError('Schéma HAS ESSMS modifié')
-  for row in it:
-   r=dict(zip(headers,row));code=norm(r['finess_geo'])
-   if code in targets:groups[code].append({k:v for k,v in r.items() if k.startswith(('eval_date','cotation_')) or k in ['eval_code','multi_essms','indice_qualite','nb_ci_atteints','nb_ci','essms_categ_finess_code','essms_secteur']})
-  w.close()
+  from has_essms import extract
+  p,info=self.resource('has-essms',lambda r:r['title']=='open_data_par_essms.xlsx')
+  q,report_info=self.resource('has-essms',lambda r:r['title']=='open_data_par_eval.xlsx')
+  groups=extract(p,q,{r['FINESS'] for r in self.structures})
+  info.update(sourceDate=max(info['sourceDate'],report_info['sourceDate']),sha256=sha((info['sha256']+report_info['sha256']).encode()),resourceUrls=[info['resourceUrl'],report_info['resourceUrl']])
   for code,rr in groups.items():
-   rr.sort(key=lambda x:str(x.get('eval_date_fin') or ''),reverse=True);self.fact('has-essms',code,dict(evaluations=rr,lien='https://www.has-sante.fr/fiche-essms/'+code),f"Évaluation du {str(rr[0].get('eval_date_fin') or '')[:10]} · niveau {rr[0].get('indice_qualite') or 'non renseigné'}",info)
+   self.fact('has-essms',code,dict(evaluations=rr,lien='https://www.has-sante.fr/fiche-essms/'+code),f"Évaluation du {str(rr[0].get('eval_date_fin') or '')[:10]} · niveau {rr[0].get('indice_qualite') or 'non renseigné'}",info)
   return dict(**info,count=len(groups))
+
  def has_san(self):
   p,info=self.resource('has-sanitaire',lambda r:r['title']=='base-document-etablissements.jsonl');targets={r['FINESS'] for r in self.structures};count=0
   with p.open() as f:
